@@ -24,7 +24,9 @@ Sitio estático (HTML + CSS + JS, sin framework), listo para GitHub Pages.
 ## Ver en el computador
 Servidor `gimnasio-real-sabana-web` en `.claude/launch.json` (puerto 5691). El formulario de inscripciones corre aparte en el puerto 5690.
 
-## Publicar en GitHub Pages
-1. Crear un repositorio (ej. `gimnasiorealdelasabana`) y subir el contenido de esta carpeta.
-2. Settings → Pages → Branch `main` / root → Save.
-3. Al tener la URL definitiva, actualizar en `index.html`: `canonical`, `og:image` (URL completa) y los campos `image`/`logo` del JSON-LD.
+## Publicación
+- Página: https://gimnasiorealdelasabana.github.io
+- Repositorio: https://github.com/gimnasiorealdelasabana/gimnasiorealdelasabana.github.io (cuenta del colegio, separada de CORPOSEPI)
+- Cada `git push` a `main` publica los cambios en 1–2 minutos.
+- Este repositorio sube siempre con la cuenta `gimnasiorealdelasabana` (configurado en `.git/config`), aunque `gh` esté activo con otra cuenta.
+- Si se compra un dominio propio, cambiar `canonical`, `og:url`, `og:image`, el JSON-LD, `robots.txt` y `sitemap.xml`.
