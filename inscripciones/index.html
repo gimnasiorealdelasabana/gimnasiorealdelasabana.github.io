@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inscripciones 2027 · Gimnasio Real de la Sabana</title>
+<meta name="description" content="Formulario de inscripción en línea 2027 — Colegio Gimnasio Real de la Sabana, Madrid, Cundinamarca. Preescolar y Primaria.">
+<meta name="theme-color" content="#d3182b">
+<link rel="icon" href="logo.jpeg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="marca">
+    <img src="logo.jpeg" alt="Escudo Colegio Gimnasio Real de la Sabana">
+    <div>
+      <div class="t1">Colegio</div>
+      <div class="t2">Gimnasio Real de la Sabana</div>
+      <div class="t3">Preescolar y Primaria · Madrid, Cundinamarca</div>
+    </div>
+  </div>
+  <h1 class="hero-tit">Inscripciones <span id="anio">2027</span></h1>
+  <p class="hero-sub">Diligencie el formulario en línea. El cupo queda <b>guardado</b> cuando se cancela el valor de la inscripción en efectivo en el colegio.</p>
+</header>
+
+<main class="wrap">
+  <div class="tabs" role="tablist">
+    <button class="on" data-tab="form" role="tab">📝 Inscribir estudiante</button>
+    <button data-tab="consulta" role="tab">🔎 Consultar mi inscripción</button>
+  </div>
+
+  <!-- ================= FORMULARIO ================= -->
+  <section id="tab-form">
+    <div id="cerrado" class="card" hidden>
+      <h2>Inscripciones cerradas</h2>
+      <p class="ayuda">En este momento no estamos recibiendo inscripciones en línea. Comuníquese con la secretaría del colegio.</p>
+    </div>
+
+    <div id="info-pago" class="aviso aviso-i"></div>
+
+    <form id="form" class="card" novalidate autocomplete="on">
+      <ul class="pasos" id="pasos"><li class="on"></li><li></li><li></li><li></li><li></li></ul>
+
+      <!-- Paso 1 -->
+      <div class="paso on" data-paso="1">
+        <div class="paso-tit">Paso 1 de 5</div>
+        <h2>Datos del estudiante</h2>
+        <p class="ayuda">Escriba los datos tal como aparecen en el documento de identidad.</p>
+        <div class="grid">
+          <div class="c3"><label class="f">1er. Nombre <span class="req">*</span></label><input name="nombre1" required></div>
+          <div class="c3"><label class="f">2do. Nombre</label><input name="nombre2"></div>
+          <div class="c3"><label class="f">1er. Apellido <span class="req">*</span></label><input name="apellido1" required></div>
+          <div class="c3"><label class="f">2do. Apellido</label><input name="apellido2"></div>
+
+          <div class="c4"><label class="f">Tipo de documento <span class="req">*</span></label>
+            <select name="tipoDoc" required>
+              <option value="">Seleccione…</option>
+              <option>RC</option><option>T.I.</option><option>NUIP</option><option>PEP / PPT</option><option>Pasaporte</option><option>Otro</option>
+            </select></div>
+          <div class="c4"><label class="f">Número de documento <span class="req">*</span></label><input name="numDoc" required inputmode="numeric"></div>
+          <div class="c4"><label class="f">Expedido en</label><input name="expedidoEn"></div>
+
+          <div class="c4"><label class="f">Nacionalidad</label><input name="nacionalidad" value="Colombiana"></div>
+          <div class="c4"><label class="f">Lugar de nacimiento</label><input name="lugarNacimiento"></div>
+          <div class="c4"><label class="f">Fecha de nacimiento <span class="req">*</span></label><input type="date" name="fechaNacimiento" required>
+            <div class="nota" id="edad-txt"></div></div>
+
+          <div class="c4"><label class="f">EPS</label><input name="eps"></div>
+          <div class="c4"><label class="f">RH</label>
+            <select name="rh"><option value="">—</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select></div>
+          <div class="c4"><label class="f">Sisbén</label><input name="sisben" placeholder="Grupo o 'No tiene'"></div>
+
+          <div class="sub">Residencia</div>
+          <div class="c8"><label class="f">Dirección <span class="req">*</span></label><input name="direccion" required></div>
+          <div class="c4"><label class="f">Barrio <span class="req">*</span></label><input name="barrio" required></div>
+          <div class="c4"><label class="f">Nombre del conjunto</label><input name="conjunto"></div>
+          <div class="c3"><label class="f">Torre / bloque</label><input name="torre"></div>
+          <div class="c3"><label class="f">Casa / Apto</label><input name="apto"></div>
+          <div class="c3" style="grid-column: span 2"><label class="f">Estrato</label>
+            <select name="estrato"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+
+          <div class="sub">Escolaridad</div>
+          <div class="c6"><label class="f">Grado al que ingresa en <span class="anio">2027</span> <span class="req">*</span></label>
+            <select name="grado" id="grado" required></select>
+            <div class="nota" id="cupo-txt"></div></div>
+          <div class="c6"><label class="f">Institución anterior</label><input name="institucionAnterior" placeholder="Si es su primer colegio, escriba 'Ninguna'"></div>
+        </div>
+      </div>
+
+      <!-- Paso 2 -->
+      <div class="paso" data-paso="2">
+        <div class="paso-tit">Paso 2 de 5</div>
+        <h2>Salud y cuidados</h2>
+        <p class="ayuda">Esta información nos ayuda a cuidar mejor a su hijo(a). Si no aplica, déjelo en blanco.</p>
+        <div class="grid">
+          <div class="c6"><label class="f">Alergias</label><textarea name="alergias"></textarea></div>
+          <div class="c6"><label class="f">Enfermedades</label><textarea name="enfermedades"></textarea></div>
+          <div class="c6"><label class="f">Cuidados especiales</label><textarea name="cuidados"></textarea></div>
+          <div class="c6"><label class="f">¿Rechaza algún alimento?</label><textarea name="rechazoAlimento"></textarea></div>
+        </div>
+      </div>
+
+      <!-- Paso 3 -->
+      <div class="paso" data-paso="3">
+        <div class="paso-tit">Paso 3 de 5</div>
+        <h2>Familia</h2>
+        <p class="ayuda">Diligencie los datos de los padres que apliquen.</p>
+        <div class="grid">
+          <div class="c12"><label class="f">El estudiante vive con <span class="req">*</span></label>
+            <div class="chips">
+              <label><input type="radio" name="viveCon" value="Ambos padres" required> Ambos padres</label>
+              <label><input type="radio" name="viveCon" value="Madre"> Madre</label>
+              <label><input type="radio" name="viveCon" value="Padre"> Padre</label>
+              <label><input type="radio" name="viveCon" value="Otro"> Otro</label>
+            </div></div>
+          <div class="c12" id="vive-otro" hidden><label class="f">¿Con quién? <span class="req">*</span></label><input name="viveConOtro" placeholder="Ej.: abuelos maternos"></div>
+
+          <div class="sub">Madre</div>
+          <div class="c8"><label class="f">Nombre completo de la madre</label><input name="madreNombre"></div>
+          <div class="c4"><label class="f">C.C. No.</label><input name="madreCC" inputmode="numeric"></div>
+          <div class="c4"><label class="f">Celular</label><input name="madreCel" type="tel" inputmode="tel"></div>
+          <div class="c8"><label class="f">Correo</label><input name="madreCorreo" type="email"></div>
+          <div class="c8"><label class="f">Dirección</label><input name="madreDir"></div>
+          <div class="c4"><label class="f">Teléfono</label><input name="madreTel" type="tel"></div>
+          <div class="c12"><label class="f">Lugar de trabajo</label><input name="madreTrabajo"></div>
+
+          <div class="sub">Padre</div>
+          <div class="c8"><label class="f">Nombre completo del padre</label><input name="padreNombre"></div>
+          <div class="c4"><label class="f">C.C. No.</label><input name="padreCC" inputmode="numeric"></div>
+          <div class="c4"><label class="f">Celular</label><input name="padreCel" type="tel" inputmode="tel"></div>
+          <div class="c8"><label class="f">Correo</label><input name="padreCorreo" type="email"></div>
+          <div class="c8"><label class="f">Dirección</label><input name="padreDir"></div>
+          <div class="c4"><label class="f">Teléfono</label><input name="padreTel" type="tel"></div>
+          <div class="c12"><label class="f">Lugar de trabajo</label><input name="padreTrabajo"></div>
+        </div>
+      </div>
+
+      <!-- Paso 4 -->
+      <div class="paso" data-paso="4">
+        <div class="paso-tit">Paso 4 de 5</div>
+        <h2>Acudiente y emergencia</h2>
+        <p class="ayuda">El acudiente es la persona responsable ante el colegio. A su celular le escribiremos sobre la inscripción.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <button type="button" class="mini-btn" data-copiar="madre">Usar datos de la madre</button>
+          <button type="button" class="mini-btn" data-copiar="padre">Usar datos del padre</button>
+        </div>
+        <div class="grid">
+          <div class="c8"><label class="f">Nombre del acudiente <span class="req">*</span></label><input name="acuNombre" required></div>
+          <div class="c4"><label class="f">C.C. No. <span class="req">*</span></label><input name="acuCC" required inputmode="numeric"></div>
+          <div class="c4"><label class="f">Celular <span class="req">*</span></label><input name="acuTel" required type="tel" inputmode="tel" pattern="[0-9 +\(\)\-]{7,}"></div>
+          <div class="c4"><label class="f">Parentesco <span class="req">*</span></label><input name="acuParentesco" required list="parentescos"></div>
+          <div class="c4"><label class="f">Correo</label><input name="acuCorreo" type="email"></div>
+
+          <div class="sub">En caso de emergencia llamar a</div>
+          <div class="c8"><label class="f">Nombre <span class="req">*</span></label><input name="emeNombre" required></div>
+          <div class="c4"><label class="f">Teléfono <span class="req">*</span></label><input name="emeTel" required type="tel" inputmode="tel" pattern="[0-9 +\(\)\-]{7,}"></div>
+        </div>
+        <datalist id="parentescos"><option>Madre</option><option>Padre</option><option>Abuela</option><option>Abuelo</option><option>Tía</option><option>Tío</option><option>Hermano(a)</option></datalist>
+      </div>
+
+      <!-- Paso 5 -->
+      <div class="paso" data-paso="5">
+        <div class="paso-tit">Paso 5 de 5</div>
+        <h2>Aceptación y envío</h2>
+        <p class="ayuda">Lea y acepte para enviar la inscripción.</p>
+        <label class="check"><input type="checkbox" name="aceptaPEI" required>
+          <span><b>Aceptamos</b> el Proyecto Educativo Institucional PEI, el Manual de Convivencia, el sistema de Matrícula, pensión y las normas establecidas en la Ley General de Educación.</span></label>
+        <label class="check"><input type="checkbox" name="autorizaDatos" required>
+          <span>Diligenciando el presente documento <b>autorizamos</b> al GIMNASIO REAL DE LA SABANA de manera expresa y consciente para que, de conformidad con la Ley 1581 de 2012 y sus decretos reglamentarios, trate, almacene y transmita los datos aquí consignados con fines de recolección, análisis de información, sugerencias, desarrollo y ejecución administrativa – educativa. Los datos sensibles de los menores de edad se protegen según el Marco Legal.</span></label>
+        <label class="check"><input type="checkbox" name="entiendePago" required>
+          <span>Entiendo que el cupo <b>solo queda guardado al cancelar la inscripción en efectivo</b> en el colegio dentro del plazo indicado. Si no se paga a tiempo, el cupo puede asignarse a otro estudiante.</span></label>
+        <div class="grid" style="margin-top:6px">
+          <div class="c8"><label class="f">Nombre de quien diligencia (firma) <span class="req">*</span></label><input name="firmaNombre" required></div>
+          <div class="c4"><label class="f">Parentesco <span class="req">*</span></label><input name="firmaParentesco" required list="parentescos"></div>
+        </div>
+      </div>
+
+      <div id="err" class="aviso aviso-r" hidden style="margin-top:16px"></div>
+      <div class="acciones">
+        <button type="button" class="btn btn-s" id="atras" hidden>← Atrás</button>
+        <span></span>
+        <button type="button" class="btn btn-a" id="sig">Siguiente →</button>
+        <button type="submit" class="btn btn-p" id="enviar" hidden>Enviar inscripción ✓</button>
+      </div>
+    </form>
+
+    <!-- Comprobante -->
+    <div id="ok" class="card comprobante" hidden></div>
+  </section>
+
+  <!-- ================= CONSULTA ================= -->
+  <section id="tab-consulta" hidden>
+    <form id="fconsulta" class="card">
+      <h2>Consultar inscripción</h2>
+      <p class="ayuda">Escriba el código que recibió al inscribirse y el número de documento del estudiante.</p>
+      <div class="grid">
+        <div class="c6"><label class="f">Código de inscripción</label><input name="codigo" required placeholder="RS27-XXXX-XXXX" style="text-transform:uppercase"></div>
+        <div class="c6"><label class="f">Documento del estudiante</label><input name="doc" required inputmode="numeric"></div>
+      </div>
+      <div class="acciones"><span></span><button class="btn btn-a">Consultar</button></div>
+    </form>
+    <div id="res-consulta"></div>
+  </section>
+</main>
+
+<footer class="pie">Colegio Gimnasio Real de la Sabana · Madrid, Cundinamarca<br>Sus datos están protegidos conforme a la Ley 1581 de 2012.<br><a href="admin.html" style="color:var(--gris);font-size:12px">Acceso colegio</a></footer>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  const { C, GRADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, ESTADOS, telWa, hoja, imprimir } = GRS;
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  document.querySelectorAll("#anio, .anio").forEach(e => e.textContent = C.anio);
+
+  // ----- pestañas -----
+  $$(".tabs button").forEach(b => b.onclick = () => {
+    $$(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+    $("#tab-form").hidden = b.dataset.tab !== "form";
+    $("#tab-consulta").hidden = b.dataset.tab !== "consulta";
+  });
+
+  let cfg;
+  try { await Store.init(); cfg = await Store.getConfig(); }
+  catch (e) { $("#info-pago").className = "aviso aviso-r"; $("#info-pago").textContent = "No fue posible conectar con el colegio. Revise su conexión e intente de nuevo."; console.error(e); return; }
+
+  if (!cfg.abierto) { $("#cerrado").hidden = false; $("#form").hidden = true; $("#info-pago").hidden = true; }
+
+  const lim = cfg.fechaCierre ? ` Las inscripciones en línea cierran el <b>${fecha(cfg.fechaCierre + "T12:00:00")}</b>.` : "";
+  $("#info-pago").innerHTML = `💵 <b>¿Cómo se guarda el cupo?</b> Al terminar recibirá un <b>código</b>. Preséntelo en ${esc(cfg.lugarPago)} y cancele
+    ${cfg.valorInscripcion ? `<b>${pesos(cfg.valorInscripcion)}</b>` : "el valor de la inscripción"} en efectivo dentro de los
+    <b>${cfg.diasPlazo} días</b> siguientes (${esc(cfg.horario)}).${lim}`;
+
+  // ----- grados con cupos -----
+  const sel = $("#grado");
+  sel.innerHTML = '<option value="">Seleccione…</option>' + GRADOS.map(g => {
+    const disp = (cfg.cupos[g] || 0) - (cfg.ocupados[g] || 0);
+    return `<option value="${g}">${g}${disp <= 0 ? " — lista de espera" : ""}</option>`;
+  }).join("");
+  sel.onchange = () => {
+    const g = sel.value; if (!g) { $("#cupo-txt").textContent = ""; return; }
+    const disp = (cfg.cupos[g] || 0) - (cfg.ocupados[g] || 0);
+    $("#cupo-txt").innerHTML = disp > 0
+      ? (disp <= 5 ? `⚠️ Quedan pocos cupos (${disp}).` : "Hay cupos disponibles.")
+      : "⚠️ Cupos completos: su inscripción quedará en lista de espera.";
+  };
+
+  const F = $("#form");
+  F.fechaNacimiento.onchange = () => { $("#edad-txt").textContent = edad(F.fechaNacimiento.value); };
+  F.fechaNacimiento.max = GRS.hoyISO();
+  $$('input[name="viveCon"]').forEach(r => r.onchange = () => {
+    const otro = F.viveCon.value === "Otro";
+    $("#vive-otro").hidden = !otro; F.viveConOtro.required = otro;
+  });
+  $$("[data-copiar]").forEach(b => b.onclick = () => {
+    const p = b.dataset.copiar;
+    if (!F[p + "Nombre"].value) { alert("Primero escriba los datos de " + (p === "madre" ? "la madre" : "el padre") + " en el paso 3."); return; }
+    F.acuNombre.value = F[p + "Nombre"].value; F.acuCC.value = F[p + "CC"].value;
+    F.acuTel.value = F[p + "Cel"].value || F[p + "Tel"].value; F.acuCorreo.value = F[p + "Correo"].value;
+    F.acuParentesco.value = p === "madre" ? "Madre" : "Padre";
+    if (!F.firmaNombre.value) { F.firmaNombre.value = F.acuNombre.value; F.firmaParentesco.value = F.acuParentesco.value; }
+  });
+
+  // ----- borrador local para no perder lo escrito -----
+  const DK = "grs" + C.anio + "_borrador";
+  try {
+    const b = JSON.parse(localStorage.getItem(DK) || "null");
+    if (b) Object.entries(b).forEach(([k, v]) => {
+      const el = F.elements[k]; if (!el) return;
+      if (el instanceof RadioNodeList) { [...el].forEach(r => r.checked = r.value === v); }
+      else if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+    });
+    if (F.viveCon.value === "Otro") $("#vive-otro").hidden = false;
+    if (F.fechaNacimiento.value) $("#edad-txt").textContent = edad(F.fechaNacimiento.value);
+    sel.onchange();
+  } catch (e) {}
+  function datos() {
+    const d = {};
+    [...F.elements].forEach(el => {
+      if (!el.name) return;
+      if (el.type === "radio") { if (el.checked) d[el.name] = el.value; }
+      else if (el.type === "checkbox") d[el.name] = el.checked;
+      else d[el.name] = el.value.trim();
+    });
+    return d;
+  }
+  F.addEventListener("input", () => { try { localStorage.setItem(DK, JSON.stringify(datos())); } catch (e) {} });
+
+  // ----- navegación por pasos -----
+  let paso = 1; const N = 5;
+  function ver(n) {
+    paso = n;
+    $$(".paso").forEach(p => p.classList.toggle("on", +p.dataset.paso === n));
+    $$("#pasos li").forEach((l, i) => l.classList.toggle("on", i < n));
+    $("#atras").hidden = n === 1; $("#sig").hidden = n === N; $("#enviar").hidden = n !== N;
+    $("#err").hidden = true; F.classList.remove("mostrar-err");
+    F.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function valido(n) {
+    const campos = [...document.querySelectorAll(`.paso[data-paso="${n}"] [name]`)];
+    const malos = campos.filter(c => !c.checkValidity());
+    if (n === 3 && !F.madreNombre.value.trim() && !F.padreNombre.value.trim()) {
+      $("#err").innerHTML = "Escriba el nombre de al menos uno de los padres."; $("#err").hidden = false; return false;
+    }
+    if (!malos.length) return true;
+    F.classList.add("mostrar-err");
+    const nombres = [...new Set(malos.map(c => {
+      const l = c.closest("div")?.querySelector("label.f") || c.closest("label");
+      return (l ? l.textContent : c.name).replace("*", "").trim().slice(0, 60);
+    }))];
+    $("#err").innerHTML = "<b>Revise estos campos:</b> " + nombres.map(esc).join(" · ");
+    $("#err").hidden = false;
+    malos[0].focus();
+    return false;
+  }
+  $("#sig").onclick = () => { if (valido(paso)) ver(paso + 1); };
+  $("#atras").onclick = () => ver(paso - 1);
+
+  F.onsubmit = async ev => {
+    ev.preventDefault();
+    for (let n = 1; n <= N; n++) if (!valido(n)) { if (n !== paso) { ver(n); valido(n); } return; }
+    const btn = $("#enviar"); btn.disabled = true; btn.textContent = "Enviando…";
+    try {
+      const d = datos();
+      d.edad = edad(d.fechaNacimiento);
+      d.numDoc = d.numDoc.replace(/\s|\./g, "");
+      const disp = (cfg.cupos[d.grado] || 0) - (cfg.ocupados[d.grado] || 0);
+      d.listaEspera = disp <= 0;
+      const ins = await Store.crear(d, cfg);
+      localStorage.removeItem(DK);
+      try { localStorage.setItem("grs" + C.anio + "_ultimo", JSON.stringify({ codigo: ins.codigo, doc: ins.numDoc })); } catch (e) {}
+      F.hidden = true; $("#info-pago").hidden = true;
+      mostrarComprobante(ins, $("#ok"), true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      console.error(e);
+      $("#err").textContent = "No se pudo enviar. Revise su conexión a internet e intente de nuevo.";
+      $("#err").hidden = false;
+    } finally { btn.disabled = false; btn.textContent = "Enviar inscripción ✓"; }
+  };
+
+  function mostrarComprobante(i, cont, nuevo) {
+    const est = estadoReal(i), st = ESTADOS[est];
+    const val = i.valorInscripcion || cfg.valorInscripcion;
+    let msg = "";
+    if (est === "pendiente") msg = `<div class="aviso aviso-a" style="text-align:left">⏳ <b>Su cupo aún no está guardado.</b> Acérquese a ${esc(cfg.lugarPago)} con este código y cancele ${val ? `<b>${pesos(val)}</b>` : "el valor de la inscripción"} en efectivo <b>antes del ${fecha(i.venceEl)}</b>. ${esc(cfg.horario)}.</div>`;
+    else if (est === "guardado") msg = `<div class="aviso aviso-ok" style="text-align:left">✅ <b>¡Cupo guardado!</b> Recibimos su pago${i.pago ? ` (recibo No. ${esc(i.pago.recibo)}, ${fecha(i.pago.fecha)})` : ""}. Le informaremos las fechas de matrícula.</div>`;
+    else if (est === "vencido") msg = `<div class="aviso aviso-r" style="text-align:left">⚠️ <b>El plazo de pago venció el ${fecha(i.venceEl)}.</b> El cupo puede ser asignado a otro estudiante. Comuníquese de inmediato con la secretaría.</div>`;
+    else msg = `<div class="aviso aviso-r" style="text-align:left">Esta inscripción figura como <b>${st.txt.toLowerCase()}</b>. Comuníquese con la secretaría del colegio.</div>`;
+    const wa = cfg.whatsappSecretaria
+      ? `<a class="btn btn-ok" target="_blank" rel="noopener" href="https://wa.me/${telWa(cfg.whatsappSecretaria)}?text=${encodeURIComponent(`Hola, inscribí a ${nombreEst(i)} para ${i.grado} ${C.anio}. Mi código es ${i.codigo}.`)}">WhatsApp secretaría</a>` : "";
+    cont.innerHTML = `
+      ${nuevo ? `<div style="font-size:46px">🎉</div><h2>¡Inscripción recibida!</h2>` : `<h2>Estado de la inscripción</h2>`}
+      <p class="ayuda">${nuevo ? "Guarde este código: lo necesitará para pagar y para consultar el estado." : ""}</p>
+      <div class="codigo">${esc(i.codigo)}</div>
+      <div><span class="pill ${st.cls}">${st.txt}</span>${i.listaEspera && est !== "guardado" ? ' <span class="pill st-lib">Lista de espera</span>' : ""}</div>
+      <dl class="datos">
+        <dt>Estudiante</dt><dd>${esc(nombreEst(i))}</dd>
+        <dt>Grado ${C.anio}</dt><dd>${esc(i.grado)}</dd>
+        <dt>Acudiente</dt><dd>${esc(i.acuNombre)}</dd>
+        <dt>Diligenciado</dt><dd>${fecha(i.creado, true)}</dd>
+        ${est === "pendiente" || est === "vencido" ? `<dt>Pagar antes de</dt><dd>${fecha(i.venceEl)}</dd>` : ""}
+        ${val ? `<dt>Valor inscripción</dt><dd>${pesos(val)}</dd>` : ""}
+      </dl>
+      ${msg}
+      <div class="acciones" style="justify-content:center">
+        <button class="btn btn-a" id="b-imp">🖨️ Imprimir / guardar PDF</button>
+        ${wa}
+        ${nuevo ? `<button class="btn btn-s" onclick="location.reload()">Inscribir otro hijo(a)</button>` : ""}
+      </div>`;
+    cont.hidden = false;
+    cont.querySelector("#b-imp").onclick = () => imprimir(hoja(i));
+  }
+
+  // ----- consulta -----
+  const FC = $("#fconsulta");
+  try {
+    const u = JSON.parse(localStorage.getItem("grs" + C.anio + "_ultimo") || "null");
+    if (u) { FC.codigo.value = u.codigo; FC.doc.value = u.doc; }
+  } catch (e) {}
+  FC.onsubmit = async ev => {
+    ev.preventDefault();
+    const r = $("#res-consulta");
+    r.innerHTML = '<div class="card">Buscando…</div>';
+    try {
+      const i = await Store.obtener(FC.codigo.value);
+      const doc = FC.doc.value.replace(/\s|\./g, "");
+      if (!i || i.numDoc !== doc) { r.innerHTML = '<div class="aviso aviso-r">No encontramos una inscripción con ese código y documento. Verifique los datos.</div>'; return; }
+      const c = document.createElement("div"); c.className = "card comprobante"; r.innerHTML = ""; r.appendChild(c);
+      mostrarComprobante(i, c, false);
+    } catch (e) { console.error(e); r.innerHTML = '<div class="aviso aviso-r">No fue posible consultar. Intente de nuevo.</div>'; }
+  };
+})();
+</script>
+</body>
+</html>

@@ -4,12 +4,9 @@
 //  sitio los toma de este archivo automáticamente.
 // ============================================================
 window.GRS_SITE = {
-  // Formulario de Inscripciones 2027 (carpeta gimnasio-real-sabana).
-  // Mientras se prueba en el computador es el servidor local 5690.
-  // Mientras sea localhost, en la página publicada el botón lleva a WhatsApp.
-  // Cuando el formulario esté en internet (con Firebase), pegar aquí su link
-  // definitivo, por ejemplo: "https://gimnasiorealdelasabana.github.io/inscripciones/"
-  URL_INSCRIPCIONES: "http://localhost:5690/",
+  // Formulario de Inscripciones 2027 (carpeta inscripciones/ de este sitio, conectado a Firebase).
+  // Si se deja vacío o en localhost, en la página publicada el botón lleva a WhatsApp.
+  URL_INSCRIPCIONES: "inscripciones/",
 
   // WhatsApp en formato internacional, sin "+" ni espacios.
   WHATSAPP: "573002153138",

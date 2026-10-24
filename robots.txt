@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /herramientas/
+Disallow: /inscripciones/admin.html
 
 Sitemap: https://gimnasiorealdelasabana.github.io/sitemap.xml

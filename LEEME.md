@@ -24,6 +24,12 @@ Sitio estático (HTML + CSS + JS, sin framework), listo para GitHub Pages.
 ## Ver en el computador
 Servidor `gimnasio-real-sabana-web` en `.claude/launch.json` (puerto 5691). El formulario de inscripciones corre aparte en el puerto 5690.
 
+## Inscripciones (carpeta `inscripciones/`)
+- Formulario para padres: https://gimnasiorealdelasabana.github.io/inscripciones/
+- Panel del colegio: https://gimnasiorealdelasabana.github.io/inscripciones/admin.html (solo grs.madrid2026@gmail.com y g.realdelasabana@gmail.com)
+- Base de datos: Firebase, proyecto `gimnasio-real-sabana` (cuenta de Google del colegio). Reglas en `herramientas/firestore.rules`: si se cambian aquí, hay que pegarlas también en Firestore → Reglas → Publicar.
+- Para agregar otra persona al panel: crear el usuario en Authentication y agregar su correo a la lista de `esColegio()` en las reglas.
+
 ## Publicación
 - Página: https://gimnasiorealdelasabana.github.io
 - Repositorio: https://github.com/gimnasiorealdelasabana/gimnasiorealdelasabana.github.io (cuenta del colegio, separada de CORPOSEPI)

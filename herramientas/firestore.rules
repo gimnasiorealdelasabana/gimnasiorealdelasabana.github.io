@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Solo estos correos (usuarios creados en Firebase Authentication) pueden
+    // ver, editar y registrar pagos. Escribirlos en minúscula.
+    function esColegio() {
+      return request.auth != null
+        && request.auth.token.email in ['grs.madrid2026@gmail.com', 'g.realdelasabana@gmail.com'];
+    }
+
+    // Configuración (valor, plazo, cupos): la leen los padres, solo la edita el colegio
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if esColegio();
+    }
+
+    match /inscripciones/{codigo} {
+      // Los padres solo pueden CREAR una inscripción nueva, siempre "pendiente" y sin pago
+      allow create: if request.resource.data.estado == 'pendiente'
+                    && !('pago' in request.resource.data)
+                    && request.resource.data.codigo == codigo
+                    && request.resource.data.aceptaPEI == true
+                    && request.resource.data.autorizaDatos == true
+                    && request.resource.data.keys().size() < 120;
+      // Consulta individual con el código exacto (el código es aleatorio y difícil de adivinar)
+      allow get: if true;
+      // Listar, registrar pagos, anular: solo rectoría y secretaría
+      allow list, update, delete: if esColegio();
+    }
+
+    // Todo lo demás, cerrado
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
