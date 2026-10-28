@@ -22,7 +22,10 @@ service cloud.firestore {
                     && request.resource.data.codigo == codigo
                     && request.resource.data.aceptaPEI == true
                     && request.resource.data.autorizaDatos == true
-                    && request.resource.data.keys().size() < 120;
+                    && request.resource.data.keys().size() < 120
+                    // foto opcional, ya reducida en el navegador (máx. ~200 KB)
+                    && (!('foto' in request.resource.data)
+                        || (request.resource.data.foto is string && request.resource.data.foto.size() < 200000));
       // Consulta individual con el código exacto (el código es aleatorio y difícil de adivinar)
       allow get: if true;
       // Listar, registrar pagos, anular: solo rectoría y secretaría

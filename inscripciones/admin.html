@@ -116,9 +116,10 @@
     <div class="modal-cab"><h2>Configuración</h2><button type="button" class="x" data-cerrar>✕</button></div>
     <label class="check"><input type="checkbox" name="abierto"> <span><b>Inscripciones abiertas</b> — los padres pueden diligenciar el formulario.</span></label>
     <div class="grid">
-      <div class="c4"><label class="f">Valor inscripción (pesos)</label><input name="valorInscripcion" type="number" min="0" step="1000"></div>
-      <div class="c4"><label class="f">Días de plazo para pagar</label><input name="diasPlazo" type="number" min="1" max="60"></div>
-      <div class="c4"><label class="f">Fecha de cierre (opcional)</label><input name="fechaCierre" type="date"></div>
+      <div class="c6"><label class="f">Inscripción estudiante nuevo (pesos)</label><input name="valorNuevo" type="number" min="0" step="1000"></div>
+      <div class="c6"><label class="f">Inscripción estudiante de continuidad (pesos)</label><input name="valorContinuidad" type="number" min="0" step="1000"></div>
+      <div class="c6"><label class="f">Días de plazo para pagar</label><input name="diasPlazo" type="number" min="1" max="60"></div>
+      <div class="c6"><label class="f">Fecha de cierre (opcional)</label><input name="fechaCierre" type="date"></div>
       <div class="c6"><label class="f">WhatsApp de secretaría</label><input name="whatsappSecretaria" type="tel" placeholder="3001234567"></div>
       <div class="c6"><label class="f">Lugar de pago</label><input name="lugarPago"></div>
       <div class="c12"><label class="f">Horario de atención</label><input name="horario"></div>
@@ -133,7 +134,7 @@
 <script src="app.js"></script>
 <script>
 (async function () {
-  const { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, nombreEst, estadoReal, telWa, hoja, imprimir } = GRS;
+  const { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, nombreEst, estadoReal, telWa, hoja, imprimir, valorPara, TIPOS, fotoSrc } = GRS;
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   $$(".anio").forEach(e => e.textContent = C.anio);
   const linkForm = location.href.replace(/admin\.html.*$/, "").replace(/[?#].*$/, "");
@@ -232,7 +233,7 @@
         const st = ESTADOS[estadoReal(i)];
         return `<tr class="click" data-c="${esc(i.codigo)}">
           <td class="mono">${esc(i.codigo)}</td>
-          <td><b>${esc(nombreEst(i))}</b><br><small style="color:var(--gris)">${esc(i.tipoDoc)} ${esc(i.numDoc)}</small></td>
+          <td><b>${esc(nombreEst(i))}</b>${fotoSrc(i) ? " 📷" : ""}<br><small style="color:var(--gris)">${esc(i.tipoDoc)} ${esc(i.numDoc)} · ${i.tipoEstudiante === "continuidad" ? "Continuidad" : i.tipoEstudiante === "nuevo" ? "Nuevo" : ""}</small></td>
           <td>${esc(i.grado)}${i.listaEspera ? '<br><small style="color:var(--alerta)">lista de espera</small>' : ""}</td>
           <td>${esc(i.acuNombre)}<br><small style="color:var(--gris)">${esc(i.acuTel)}</small></td>
           <td>${fecha(i.creado)}</td>
@@ -251,7 +252,7 @@
     const waAcu = telWa(i.acuTel);
     const msgRec = est === "guardado"
       ? `Hola ${i.acuNombre}. Le confirmamos que el cupo de ${nombreEst(i)} para ${i.grado} ${C.anio} en el Gimnasio Real de la Sabana quedó GUARDADO. Código: ${i.codigo}. ¡Bienvenidos!`
-      : `Hola ${i.acuNombre}. Le recordamos que la inscripción de ${nombreEst(i)} para ${i.grado} ${C.anio} (código ${i.codigo}) está PENDIENTE DE PAGO. Para guardar el cupo, acérquese a ${cfg.lugarPago} y cancele${cfg.valorInscripcion ? " " + pesos(cfg.valorInscripcion) : " la inscripción"} en efectivo antes del ${fecha(i.venceEl)}. ${cfg.horario}. Gimnasio Real de la Sabana.`;
+      : `Hola ${i.acuNombre}. Le recordamos que la inscripción de ${nombreEst(i)} para ${i.grado} ${C.anio} (código ${i.codigo}) está PENDIENTE DE PAGO. Para guardar el cupo, acérquese a ${cfg.lugarPago} y cancele ${pesos(i.valorInscripcion || valorPara(i.tipoEstudiante, cfg))} en efectivo antes del ${fecha(i.venceEl)}. ${cfg.horario}. Gimnasio Real de la Sabana.`;
 
     let acciones = "";
     if (i.estado === "pendiente") acciones = `
@@ -259,7 +260,7 @@
         <h3 style="margin:0 0 10px;color:var(--ok)">💵 Registrar pago en efectivo</h3>
         <div class="grid">
           <div class="c3"><label class="f">Recibo No. *</label><input name="recibo" required></div>
-          <div class="c3"><label class="f">Valor recibido *</label><input name="valor" type="number" min="0" required value="${Number(i.valorInscripcion || cfg.valorInscripcion) || ""}"></div>
+          <div class="c3"><label class="f">Valor recibido *</label><input name="valor" type="number" min="0" required value="${Number(i.valorInscripcion || valorPara(i.tipoEstudiante, cfg)) || ""}"></div>
           <div class="c3"><label class="f">Fecha *</label><input name="fecha" type="date" required value="${hoy}" max="${hoy}"></div>
           <div class="c3"><label class="f">Recibió *</label><input name="recibio" required value="${esc(localStorage.getItem("grs_recibio") || "")}"></div>
         </div>
@@ -270,7 +271,7 @@
       <small>Registrado por ${esc(i.pago.registradoPor || "")} el ${fecha(i.pago.registrado, true)}</small></div>`;
 
     $("#det").innerHTML = `
-      <div class="modal-cab"><h2>${esc(nombreEst(i))}<br><small class="mono" style="color:var(--gris)">${esc(i.codigo)}</small></h2>
+      <div class="modal-cab">${fotoSrc(i) ? `<img class="foto-mini" src="${esc(fotoSrc(i))}" alt="Foto">` : `<div class="foto-mini" style="display:flex;align-items:center;justify-content:center;color:var(--gris);font-size:12px;text-align:center">Sin foto</div>`}<h2>${esc(nombreEst(i))}<br><small class="mono" style="color:var(--gris)">${esc(i.codigo)}</small></h2>
         <span class="pill ${st.cls}" style="margin-top:6px">${st.txt}</span><button class="x" data-cerrar>✕</button></div>
       ${est === "vencido" ? `<div class="aviso aviso-r">El plazo de pago venció el ${fecha(i.venceEl)}. Puede ampliar el plazo, registrar el pago o liberar el cupo.</div>` : ""}
       ${i.listaEspera && i.estado !== "guardado" ? `<div class="aviso aviso-a">Se inscribió cuando el grado estaba lleno (lista de espera).</div>` : ""}
@@ -288,6 +289,7 @@
         ${d("Documento", i.tipoDoc + " " + i.numDoc)}${d("Expedido en", i.expedidoEn)}
         ${d("Fecha de nacimiento", i.fechaNacimiento + (i.edad ? " (" + i.edad + ")" : ""))}${d("Lugar de nacimiento / Nacionalidad", [i.lugarNacimiento, i.nacionalidad].filter(Boolean).join(" · "))}
         ${d("EPS · RH · Sisbén", [i.eps, i.rh, i.sisben].filter(Boolean).join(" · "))}${d("Grado al que ingresa", i.grado)}
+        ${d("Tipo de estudiante", TIPOS[i.tipoEstudiante])}${d("Valor inscripción", i.valorInscripcion ? pesos(i.valorInscripcion) : "")}
         ${d("Dirección", [i.direccion, i.torre && "Torre " + i.torre, i.apto && "Apto " + i.apto, i.conjunto].filter(Boolean).join(", "))}${d("Barrio · Estrato", [i.barrio, i.estrato && "Estrato " + i.estrato].filter(Boolean).join(" · "))}
         ${d("Institución anterior", i.institucionAnterior)}${d("Vive con", i.viveCon + (i.viveConOtro ? ": " + i.viveConOtro : ""))}
         <h4>Salud</h4>
@@ -350,7 +352,7 @@
   $("#b-cfg").onclick = () => {
     const f = $("#fcfg");
     f.abierto.checked = cfg.abierto;
-    ["valorInscripcion", "diasPlazo", "fechaCierre", "whatsappSecretaria", "lugarPago", "horario"].forEach(k => f[k].value = cfg[k] ?? "");
+    ["valorNuevo", "valorContinuidad", "diasPlazo", "fechaCierre", "whatsappSecretaria", "lugarPago", "horario"].forEach(k => f[k].value = cfg[k] ?? "");
     $("#cfg-cupos").innerHTML = GRADOS.map(g => `<div class="c4"><label class="f">${g}</label><input type="number" min="0" data-g="${g}" value="${cfg.cupos[g] || 0}"></div>`).join("");
     $("#m-cfg").hidden = false;
   };
@@ -359,7 +361,8 @@
     const f = ev.target;
     const n = Object.assign({}, cfg, {
       abierto: f.abierto.checked,
-      valorInscripcion: Number(f.valorInscripcion.value) || 0,
+      valorNuevo: Number(f.valorNuevo.value) || 0,
+      valorContinuidad: Number(f.valorContinuidad.value) || 0,
       diasPlazo: Number(f.diasPlazo.value) || 8,
       fechaCierre: f.fechaCierre.value,
       whatsappSecretaria: f.whatsappSecretaria.value.trim(),
@@ -373,7 +376,7 @@
   };
 
   // ---------- compartir / exportar ----------
-  const textoPadres = () => `🏫 *Colegio Gimnasio Real de la Sabana* — Madrid, Cundinamarca\n\nApreciados padres de familia: ya están abiertas las *inscripciones ${C.anio}* para Preescolar y Primaria.\n\n📝 Diligencie el formulario en línea aquí:\n${linkForm}\n\n💵 El cupo queda *guardado* al cancelar la inscripción en efectivo en ${cfg.lugarPago} dentro de los ${cfg.diasPlazo} días siguientes. Si no se paga a tiempo, el cupo puede asignarse a otro estudiante.\n\n¡Gracias por elegirnos!`;
+  const textoPadres = () => `🏫 *Colegio Gimnasio Real de la Sabana* — Madrid, Cundinamarca\n\nApreciados padres de familia: ya están abiertas las *inscripciones ${C.anio}* para Preescolar y Primaria.\n\n📝 Diligencie el formulario en línea aquí:\n${linkForm}\n\n💵 El cupo queda *guardado* al cancelar la inscripción en efectivo en ${cfg.lugarPago} (estudiantes nuevos ${pesos(cfg.valorNuevo)}, estudiantes de continuidad ${pesos(cfg.valorContinuidad)}) dentro de los ${cfg.diasPlazo} días siguientes. Si no se paga a tiempo, el cupo puede asignarse a otro estudiante.\n\n¡Gracias por elegirnos!`;
   $("#b-link").onclick = async () => {
     try { await navigator.clipboard.writeText(linkForm); toast("Link copiado: " + linkForm); }
     catch (e) { prompt("Copie el link del formulario:", linkForm); }
@@ -381,7 +384,7 @@
   $("#b-wa").onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent(textoPadres()), "_blank", "noopener");
 
   $("#b-csv").onclick = () => {
-    const cols = [["codigo", "Código"], ["_estado", "Estado"], ["grado", "Grado"], ["nombre1", "1er nombre"], ["nombre2", "2do nombre"], ["apellido1", "1er apellido"], ["apellido2", "2do apellido"],
+    const cols = [["codigo", "Código"], ["_estado", "Estado"], ["_tipo", "Tipo"], ["valorInscripcion", "Valor inscripción"], ["grado", "Grado"], ["nombre1", "1er nombre"], ["nombre2", "2do nombre"], ["apellido1", "1er apellido"], ["apellido2", "2do apellido"],
       ["tipoDoc", "Tipo doc"], ["numDoc", "Documento"], ["expedidoEn", "Expedido en"], ["fechaNacimiento", "Nacimiento"], ["edad", "Edad"], ["nacionalidad", "Nacionalidad"], ["lugarNacimiento", "Lugar nac."],
       ["eps", "EPS"], ["rh", "RH"], ["sisben", "Sisbén"], ["direccion", "Dirección"], ["torre", "Torre"], ["apto", "Apto"], ["conjunto", "Conjunto"], ["barrio", "Barrio"], ["estrato", "Estrato"],
       ["institucionAnterior", "Inst. anterior"], ["alergias", "Alergias"], ["enfermedades", "Enfermedades"], ["cuidados", "Cuidados"], ["rechazoAlimento", "Rechazo alimento"], ["viveCon", "Vive con"],
@@ -389,7 +392,7 @@
       ["padreNombre", "Padre"], ["padreCC", "CC padre"], ["padreCel", "Cel padre"], ["padreCorreo", "Correo padre"], ["padreTrabajo", "Trabajo padre"],
       ["acuNombre", "Acudiente"], ["acuCC", "CC acudiente"], ["acuTel", "Cel acudiente"], ["acuParentesco", "Parentesco"], ["acuCorreo", "Correo acudiente"],
       ["emeNombre", "Emergencia"], ["emeTel", "Tel emergencia"], ["_creado", "Inscrito"], ["_vence", "Vence pago"], ["_recibo", "Recibo"], ["_valor", "Valor pagado"], ["_fpago", "Fecha pago"], ["nota", "Nota"]];
-    const val = (i, k) => ({ _estado: ESTADOS[estadoReal(i)].txt, _creado: fecha(i.creado, true), _vence: fecha(i.venceEl),
+    const val = (i, k) => ({ _estado: ESTADOS[estadoReal(i)].txt, _tipo: TIPOS[i.tipoEstudiante], _creado: fecha(i.creado, true), _vence: fecha(i.venceEl),
       _recibo: i.pago?.recibo, _valor: i.pago?.valor, _fpago: i.pago?.fecha })[k] ?? i[k];
     const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
     const csv = "﻿" + cols.map(c => q(c[1])).join(";") + "\n" + filtrada().map(i => cols.map(c => q(val(i, c[0]))).join(";")).join("\n");

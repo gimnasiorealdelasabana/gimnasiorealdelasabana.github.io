@@ -17,7 +17,8 @@
 
   const CONFIG_BASE = {
     abierto: true,
-    valorInscripcion: 0,
+    valorNuevo: 55000,        // estudiantes nuevos
+    valorContinuidad: 50000,  // estudiantes que ya estudian en el colegio
     diasPlazo: 8,
     fechaCierre: "",
     whatsappSecretaria: "",
@@ -69,6 +70,33 @@
   function estadoReal(i) {
     if (i.estado === "pendiente" && i.venceEl && new Date() > new Date(i.venceEl)) return "vencido";
     return i.estado;
+  }
+  // Valor de la inscripción según el tipo de estudiante
+  function valorPara(tipo, cfg) {
+    return Number(tipo === "continuidad" ? cfg.valorContinuidad : cfg.valorNuevo) || 0;
+  }
+  const TIPOS = { nuevo: "Estudiante nuevo", continuidad: "Continuidad (ya estudia en el colegio)" };
+
+  // Reduce la foto a 300×400 px en JPEG (~25 KB) para guardarla dentro de la inscripción
+  function fotoReducida(file) {
+    return new Promise((ok, fail) => {
+      if (!file || !/^image\//.test(file.type)) return fail(new Error("El archivo no es una imagen"));
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const W = 300, H = 400, c = document.createElement("canvas");
+        c.width = W; c.height = H;
+        // recorte centrado tipo foto documento (3:4)
+        const r = Math.max(W / img.width, H / img.height);
+        const w = img.width * r, h = img.height * r;
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+        g.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+        URL.revokeObjectURL(url);
+        ok(c.toDataURL("image/jpeg", 0.78));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); fail(new Error("No se pudo leer la imagen")); };
+      img.src = url;
+    });
   }
   function telWa(t) {
     let d = String(t || "").replace(/\D/g, "");
@@ -138,7 +166,7 @@
       const doc = Object.assign({}, data, {
         codigo, anio: C.anio, estado: "pendiente",
         creado: ahora.toISOString(), venceEl: vence.toISOString(),
-        valorInscripcion: Number(cfg.valorInscripcion) || 0
+        valorInscripcion: valorPara(data.tipoEstudiante, cfg)
       });
       if (fs) await fs.collection("inscripciones").doc(codigo).set(doc);
       else { const m = local.all(); m[codigo] = doc; local.put(m); }
@@ -199,6 +227,11 @@
     }
   };
 
+  // Solo se muestran fotos guardadas como imagen embebida (data:image/…)
+  function fotoSrc(i) {
+    return typeof i.foto === "string" && /^data:image\/(jpeg|png|webp);base64,/.test(i.foto) ? i.foto : "";
+  }
+
   // ---------- hoja imprimible (formato del formulario en papel) ----------
   function hoja(i) {
     const e = esc, st = ESTADOS[estadoReal(i)] || ESTADOS.pendiente;
@@ -208,6 +241,7 @@
       <div class="enc"><img src="logo.jpeg" alt="">
         <div><h1>FORMULARIO DE INSCRIPCIÓN ${C.anio}</h1><p>${e(C.colegio).toUpperCase()} · ${e(C.ciudad)}</p></div>
         <div class="estado-imp"><b>Código: ${e(i.codigo)}</b><br>Estado: <b>${st.txt}</b><br>${pago}<br>Diligenciado: ${fecha(i.creado, true)}</div>
+        ${fotoSrc(i) ? `<img class="foto-imp" src="${e(fotoSrc(i))}" alt="Foto">` : `<div class="foto-imp">FOTO</div>`}
       </div>
       <p class="legal">Apreciados Padres de Familia: para nuestra Institución es muy gratificante ser elegidos como educadores y formadores de su(s) hijo(a). Por favor tener en cuenta las fechas de Matrícula para evitar que su cupo sea asignado a otro Estudiante.</p>
       <h3>DATOS DEL ESTUDIANTE</h3>
@@ -217,6 +251,7 @@
         <tr>${td("Fecha de nacimiento", i.fechaNacimiento)}${td("Edad", i.edad)}${td("EPS", i.eps)}${td("RH / Sisbén", (i.rh || "") + " / " + (i.sisben || ""))}</tr>
         <tr>${td("Dirección", i.direccion, 2)}${td("Torre/bloque · Casa/Apto", [i.torre, i.apto].filter(Boolean).join(" · "))}${td("Conjunto", i.conjunto)}</tr>
         <tr>${td("Barrio", i.barrio)}${td("Estrato", i.estrato)}${td("Institución anterior", i.institucionAnterior)}${td("Grado al que ingresa", i.grado)}</tr>
+        <tr>${td("Tipo de estudiante", TIPOS[i.tipoEstudiante] || "", 2)}${td("Valor inscripción", i.valorInscripcion ? pesos(i.valorInscripcion) : "", 2)}</tr>
         <tr>${td("Alergias", i.alergias, 2)}${td("Enfermedades", i.enfermedades, 2)}</tr>
         <tr>${td("Cuidados especiales", i.cuidados, 2)}${td("Rechazo algún alimento", i.rechazoAlimento, 2)}</tr>
         <tr>${td("El estudiante vive con", i.viveCon + (i.viveConOtro ? ": " + i.viveConOtro : ""), 4)}</tr>
@@ -248,5 +283,5 @@
     if (img && !img.complete) img.onload = () => window.print(); else window.print();
   }
 
-  window.GRS = { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, telWa, hoja, imprimir, hoyISO };
+  window.GRS = { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, telWa, hoja, imprimir, hoyISO, valorPara, TIPOS, fotoReducida, fotoSrc };
 })();

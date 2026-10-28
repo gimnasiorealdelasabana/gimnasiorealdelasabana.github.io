@@ -50,6 +50,22 @@
         <h2>Datos del estudiante</h2>
         <p class="ayuda">Escriba los datos tal como aparecen en el documento de identidad.</p>
         <div class="grid">
+          <div class="c12"><label class="f">El estudiante es <span class="req">*</span></label>
+            <div class="chips">
+              <label><input type="radio" name="tipoEstudiante" value="nuevo" required> Nuevo en el colegio <b class="v-tipo" data-tipo="nuevo"></b></label>
+              <label><input type="radio" name="tipoEstudiante" value="continuidad"> Continuidad: ya estudia en el colegio en <span class="anio-ant"></span> <b class="v-tipo" data-tipo="continuidad"></b></label>
+            </div></div>
+
+          <div class="c12"><label class="f">Foto del estudiante</label>
+            <div class="foto-box">
+              <div class="foto-prev" id="foto-prev">📷</div>
+              <div class="foto-acc">
+                <label class="mini-btn">📸 Tomar o subir foto<input type="file" id="foto-in" accept="image/*"></label>
+                <button type="button" class="mini-btn" id="foto-quitar" hidden>Quitar foto</button>
+                <div class="nota">Foto tipo documento, de frente y con fondo claro. Si no la tiene a mano, puede entregarla en el colegio.</div>
+              </div>
+            </div></div>
+
           <div class="c3"><label class="f">1er. Nombre <span class="req">*</span></label><input name="nombre1" required></div>
           <div class="c3"><label class="f">2do. Nombre</label><input name="nombre2"></div>
           <div class="c3"><label class="f">1er. Apellido <span class="req">*</span></label><input name="apellido1" required></div>
@@ -212,9 +228,10 @@
 <script src="app.js"></script>
 <script>
 (async function () {
-  const { C, GRADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, ESTADOS, telWa, hoja, imprimir } = GRS;
+  const { C, GRADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, ESTADOS, telWa, hoja, imprimir, valorPara, fotoReducida, fotoSrc } = GRS;
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   document.querySelectorAll("#anio, .anio").forEach(e => e.textContent = C.anio);
+  document.querySelectorAll(".anio-ant").forEach(e => e.textContent = C.anio - 1);
 
   // ----- pestañas -----
   $$(".tabs button").forEach(b => b.onclick = () => {
@@ -231,8 +248,9 @@
 
   const lim = cfg.fechaCierre ? ` Las inscripciones en línea cierran el <b>${fecha(cfg.fechaCierre + "T12:00:00")}</b>.` : "";
   $("#info-pago").innerHTML = `💵 <b>¿Cómo se guarda el cupo?</b> Al terminar recibirá un <b>código</b>. Preséntelo en ${esc(cfg.lugarPago)} y cancele
-    ${cfg.valorInscripcion ? `<b>${pesos(cfg.valorInscripcion)}</b>` : "el valor de la inscripción"} en efectivo dentro de los
-    <b>${cfg.diasPlazo} días</b> siguientes (${esc(cfg.horario)}).${lim}`;
+    la inscripción en efectivo dentro de los <b>${cfg.diasPlazo} días</b> siguientes (${esc(cfg.horario)}).${lim}
+    <br>Valor de la inscripción: <b>estudiantes nuevos ${pesos(cfg.valorNuevo)}</b> · <b>estudiantes de continuidad ${pesos(cfg.valorContinuidad)}</b>.`;
+  $$(".v-tipo").forEach(b => b.textContent = "· " + pesos(valorPara(b.dataset.tipo, cfg)));
 
   // ----- grados con cupos -----
   const sel = $("#grado");
@@ -264,8 +282,32 @@
     if (!F.firmaNombre.value) { F.firmaNombre.value = F.acuNombre.value; F.firmaParentesco.value = F.acuParentesco.value; }
   });
 
-  // ----- borrador local para no perder lo escrito -----
+  // ----- tipo de estudiante -----
+  $$('input[name="tipoEstudiante"]').forEach(r => r.addEventListener("change", () => {
+    const ia = F.institucionAnterior;
+    if (F.tipoEstudiante.value === "continuidad" && !ia.value) ia.value = C.colegio;
+    else if (F.tipoEstudiante.value === "nuevo" && ia.value === C.colegio) ia.value = "";
+  }));
+
+  // ----- foto del estudiante -----
   const DK = "grs" + C.anio + "_borrador";
+  let foto = "";
+  function pintarFoto() {
+    const p = $("#foto-prev");
+    p.style.backgroundImage = foto ? `url("${foto}")` : "";
+    p.classList.toggle("con", !!foto);
+    $("#foto-quitar").hidden = !foto;
+  }
+  $("#foto-in").onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = "";
+    if (!f) return;
+    try { foto = await fotoReducida(f); pintarFoto(); try { localStorage.setItem(DK + "_foto", foto); } catch (e) {} }
+    catch (e) { alert("No se pudo cargar la foto. Intente con otra imagen (JPG o PNG)."); }
+  };
+  $("#foto-quitar").onclick = () => { foto = ""; pintarFoto(); localStorage.removeItem(DK + "_foto"); };
+  try { foto = localStorage.getItem(DK + "_foto") || ""; pintarFoto(); } catch (e) {}
+
+  // ----- borrador local para no perder lo escrito -----
   try {
     const b = JSON.parse(localStorage.getItem(DK) || "null");
     if (b) Object.entries(b).forEach(([k, v]) => {
@@ -329,8 +371,9 @@
       d.numDoc = d.numDoc.replace(/\s|\./g, "");
       const disp = (cfg.cupos[d.grado] || 0) - (cfg.ocupados[d.grado] || 0);
       d.listaEspera = disp <= 0;
+      if (foto) d.foto = foto;
       const ins = await Store.crear(d, cfg);
-      localStorage.removeItem(DK);
+      localStorage.removeItem(DK); localStorage.removeItem(DK + "_foto");
       try { localStorage.setItem("grs" + C.anio + "_ultimo", JSON.stringify({ codigo: ins.codigo, doc: ins.numDoc })); } catch (e) {}
       F.hidden = true; $("#info-pago").hidden = true;
       mostrarComprobante(ins, $("#ok"), true);
@@ -344,7 +387,7 @@
 
   function mostrarComprobante(i, cont, nuevo) {
     const est = estadoReal(i), st = ESTADOS[est];
-    const val = i.valorInscripcion || cfg.valorInscripcion;
+    const val = i.valorInscripcion || valorPara(i.tipoEstudiante, cfg);
     let msg = "";
     if (est === "pendiente") msg = `<div class="aviso aviso-a" style="text-align:left">⏳ <b>Su cupo aún no está guardado.</b> Acérquese a ${esc(cfg.lugarPago)} con este código y cancele ${val ? `<b>${pesos(val)}</b>` : "el valor de la inscripción"} en efectivo <b>antes del ${fecha(i.venceEl)}</b>. ${esc(cfg.horario)}.</div>`;
     else if (est === "guardado") msg = `<div class="aviso aviso-ok" style="text-align:left">✅ <b>¡Cupo guardado!</b> Recibimos su pago${i.pago ? ` (recibo No. ${esc(i.pago.recibo)}, ${fecha(i.pago.fecha)})` : ""}. Le informaremos las fechas de matrícula.</div>`;
@@ -357,8 +400,10 @@
       <p class="ayuda">${nuevo ? "Guarde este código: lo necesitará para pagar y para consultar el estado." : ""}</p>
       <div class="codigo">${esc(i.codigo)}</div>
       <div><span class="pill ${st.cls}">${st.txt}</span>${i.listaEspera && est !== "guardado" ? ' <span class="pill st-lib">Lista de espera</span>' : ""}</div>
+      ${fotoSrc(i) ? `<div style="margin-top:12px"><img class="foto-mini" src="${esc(fotoSrc(i))}" alt="Foto del estudiante"></div>` : ""}
       <dl class="datos">
         <dt>Estudiante</dt><dd>${esc(nombreEst(i))}</dd>
+        <dt>Tipo</dt><dd>${esc(GRS.TIPOS[i.tipoEstudiante] || "—")}</dd>
         <dt>Grado ${C.anio}</dt><dd>${esc(i.grado)}</dd>
         <dt>Acudiente</dt><dd>${esc(i.acuNombre)}</dd>
         <dt>Diligenciado</dt><dd>${fecha(i.creado, true)}</dd>
