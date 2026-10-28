@@ -333,23 +333,41 @@
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $("#foto-cap").click(); return; }
     try {
       if (stream) stream.getTracks().forEach(t => t.stop());
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modoCam, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modoCam, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+      } catch (e1) {
+        // Algunos computadores no aceptan "facingMode": se intenta con cualquier cámara
+        if (e1.name === "NotAllowedError" || e1.name === "SecurityError") throw e1;
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
       video.srcObject = stream;
-      video.classList.toggle("espejo", modoCam === "user");
+      // En computador la cámara web es frontal: se muestra en espejo como un espejo normal
+      const frontal = modoCam === "user" || !/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+      video.classList.toggle("espejo", frontal);
+      video.dataset.espejo = frontal ? "1" : "";
       $("#cam").hidden = false;
     } catch (e) {
       console.warn(e); apagarCam();
-      alert("No fue posible usar la cámara (permiso denegado o no hay cámara). Puede usar «Seleccionar archivo».");
+      const msg = {
+        NotAllowedError: "El navegador no tiene permiso para usar la cámara.\n\nToque el ícono de la cámara (o el candado 🔒) en la barra de dirección, elija «Permitir» y vuelva a intentarlo.",
+        NotFoundError: "No se encontró ninguna cámara en este equipo.",
+        NotReadableError: "La cámara está siendo usada por otro programa (Zoom, Meet, OBS, WhatsApp…). Ciérrelo y vuelva a intentarlo."
+      }[e.name] || "No fue posible abrir la cámara.";
+      alert(msg + "\n\nTambién puede usar «Seleccionar archivo».");
     }
   }
   $("#foto-cam").onclick = abrirCam;
   $("#cam-cerrar").onclick = apagarCam;
   $("#cam-girar").onclick = () => { modoCam = modoCam === "environment" ? "user" : "environment"; abrirCam(); };
+  // "Tomar" se activa solo cuando la cámara ya está mostrando imagen
+  video.addEventListener("loadeddata", () => { $("#cam-disparar").disabled = false; $("#cam-disparar").textContent = "📸 Tomar"; });
+  $("#foto-cam").addEventListener("click", () => { $("#cam-disparar").disabled = true; $("#cam-disparar").textContent = "Abriendo cámara…"; }, true);
   $("#cam-disparar").onclick = () => {
+    if (!video.videoWidth) return;
     const c = document.createElement("canvas");
     c.width = video.videoWidth; c.height = video.videoHeight;
     const g = c.getContext("2d");
-    if (modoCam === "user") { g.translate(c.width, 0); g.scale(-1, 1); }
+    if (video.dataset.espejo) { g.translate(c.width, 0); g.scale(-1, 1); }
     g.drawImage(video, 0, 0);
     c.toBlob(b => { apagarCam(); if (b) usarFoto(new File([b], "foto.jpg", { type: "image/jpeg" })); }, "image/jpeg", 0.9);
   };
