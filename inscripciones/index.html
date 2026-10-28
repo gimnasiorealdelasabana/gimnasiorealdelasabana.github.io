@@ -60,7 +60,11 @@
             <div class="foto-box">
               <div class="foto-prev" id="foto-prev">📷</div>
               <div class="foto-acc">
-                <label class="mini-btn">📎 Seleccionar archivo<input type="file" id="foto-in" accept="image/*"></label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button type="button" class="mini-btn" id="foto-cam">📸 Tomar foto</button>
+                  <label class="mini-btn">📎 Seleccionar archivo<input type="file" id="foto-in" accept="image/*"></label>
+                  <input type="file" id="foto-cap" accept="image/*" capture="environment" hidden>
+                </div>
                 <button type="button" class="mini-btn" id="foto-quitar" hidden>Quitar foto</button>
                 <div class="nota">Foto tipo documento.</div>
               </div>
@@ -222,6 +226,19 @@
   </section>
 </main>
 
+<!-- Cámara para tomar la foto -->
+<div class="cam-modal" id="cam" hidden>
+  <div class="cam-caja">
+    <video id="cam-video" autoplay playsinline muted></video>
+    <div class="cam-guia"></div>
+    <div class="cam-acc">
+      <button type="button" class="btn btn-s" id="cam-cerrar">Cancelar</button>
+      <button type="button" class="btn btn-p" id="cam-disparar">📸 Tomar</button>
+      <button type="button" class="btn btn-s" id="cam-girar" title="Cambiar cámara">🔄</button>
+    </div>
+  </div>
+</div>
+
 <footer class="pie">Colegio Gimnasio Real de la Sabana · Madrid, Cundinamarca<br>Sus datos están protegidos conforme a la Ley 1581 de 2012.<br><a href="admin.html" style="color:var(--gris);font-size:12px">Acceso colegio</a></footer>
 
 <script src="config.js"></script>
@@ -298,11 +315,43 @@
     p.classList.toggle("con", !!foto);
     $("#foto-quitar").hidden = !foto;
   }
-  $("#foto-in").onchange = async ev => {
-    const f = ev.target.files[0]; ev.target.value = "";
-    if (!f) return;
+  async function usarFoto(f) {
     try { foto = await fotoReducida(f); pintarFoto(); try { localStorage.setItem(DK + "_foto", foto); } catch (e) {} }
     catch (e) { alert("No se pudo cargar la foto. Intente con otra imagen (JPG o PNG)."); }
+  }
+  $("#foto-in").onchange = $("#foto-cap").onchange = ev => {
+    const f = ev.target.files[0]; ev.target.value = "";
+    if (f) usarFoto(f);
+  };
+
+  // Cámara en vivo (celular o computador). Si no hay permiso o no hay cámara,
+  // se usa la cámara nativa del celular (input con capture).
+  let stream = null, modoCam = "environment";
+  const video = $("#cam-video");
+  function apagarCam() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; $("#cam").hidden = true; }
+  async function abrirCam() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $("#foto-cap").click(); return; }
+    try {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modoCam, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+      video.srcObject = stream;
+      video.classList.toggle("espejo", modoCam === "user");
+      $("#cam").hidden = false;
+    } catch (e) {
+      console.warn(e); apagarCam();
+      alert("No fue posible usar la cámara (permiso denegado o no hay cámara). Puede usar «Seleccionar archivo».");
+    }
+  }
+  $("#foto-cam").onclick = abrirCam;
+  $("#cam-cerrar").onclick = apagarCam;
+  $("#cam-girar").onclick = () => { modoCam = modoCam === "environment" ? "user" : "environment"; abrirCam(); };
+  $("#cam-disparar").onclick = () => {
+    const c = document.createElement("canvas");
+    c.width = video.videoWidth; c.height = video.videoHeight;
+    const g = c.getContext("2d");
+    if (modoCam === "user") { g.translate(c.width, 0); g.scale(-1, 1); }
+    g.drawImage(video, 0, 0);
+    c.toBlob(b => { apagarCam(); if (b) usarFoto(new File([b], "foto.jpg", { type: "image/jpeg" })); }, "image/jpeg", 0.9);
   };
   $("#foto-quitar").onclick = () => { foto = ""; pintarFoto(); localStorage.removeItem(DK + "_foto"); };
   try { foto = localStorage.getItem(DK + "_foto") || ""; pintarFoto(); } catch (e) {}
