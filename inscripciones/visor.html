@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentos institucionales · Gimnasio Real de la Sabana</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1d3a75">
+<link rel="icon" href="logo.jpeg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .barra-doc { position: sticky; top: 0; z-index: 5; background: var(--azul); color: #fff; padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .barra-doc img { width: 34px; background: #fff; border-radius: 6px; padding: 2px; }
+  .barra-doc b { font-size: 15px; }
+  .barra-doc .der { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .barra-doc button { background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 8px; padding: 7px 11px; font-weight: 700; font-size: 13px; }
+  .barra-doc button.on { background: #fff; color: var(--azul); }
+  .paginas { max-width: 900px; margin: 16px auto 40px; padding: 0 10px; }
+  .pag { position: relative; background: #fff; box-shadow: var(--sombra); margin-bottom: 14px; min-height: 200px; }
+  .pag img { display: block; width: 100%; height: auto; pointer-events: none; -webkit-user-drag: none; }
+  .pag .marca-agua { position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .pag .marca-agua span { transform: rotate(-30deg); font-size: clamp(14px, 3.2vw, 26px); font-weight: 800; color: rgba(29,58,117,.10); white-space: nowrap; text-align: center; line-height: 1.6; }
+  .pag .num { position: absolute; right: 8px; bottom: 6px; font-size: 11px; color: #999; }
+  @media print { body * { display: none !important; } body::after { content: "Documento de consulta en línea. No disponible para impresión."; display: block !important; padding: 40px; font-size: 16pt; } }
+</style>
+</head>
+<body oncontextmenu="return false">
+<div class="barra-doc">
+  <img src="logo.jpeg" alt="">
+  <b id="titulo">Documentos institucionales</b>
+  <div class="der" id="tabs"></div>
+</div>
+<div class="paginas" id="v"><div class="card" style="text-align:center">Cargando…</div></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  const { Store, esc, nombreEst, estadoPagoMat } = GRS;
+  const v = document.getElementById("v"), q = new URLSearchParams(location.search);
+  const aviso = t => v.innerHTML = `<div class="card" style="text-align:center"><h2>Documentos institucionales</h2><p class="ayuda">${t}</p></div>`;
+  // Se consultan en línea: solo para familias con el pago de matrícula aprobado
+  let lista, i, m, a;
+  try {
+    lista = await (await fetch("doc-colegio/documentos.json", { cache: "no-store" })).json();
+    await Store.init();
+    const codigo = q.get("c"), doc = String(q.get("d") || "").replace(/\s|\./g, "");
+    i = await Store.obtener(codigo);
+    if (!i || i.numDoc !== doc) return aviso("Ingrese desde su página de matrícula para ver los documentos del colegio.");
+    [m, a] = await Promise.all([Store.doc("matriculas", i.codigo).catch(() => null), Store.doc("matriculas_admin", i.codigo).catch(() => null)]);
+    if (estadoPagoMat(m, a) !== "aprobado") return aviso("Los documentos institucionales estarán disponibles cuando el colegio apruebe el pago de la matrícula.");
+  } catch (e) { console.error(e); return aviso("No fue posible cargar los documentos. Revise su conexión."); }
+
+  const marca = `Consulta de la familia de ${esc(nombreEst(i))}<br>Colegio Gimnasio Real de la Sabana · Uso exclusivo`;
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = lista.map(d => `<button data-id="${esc(d.id)}">${esc(d.corto)}</button>`).join("");
+  tabs.querySelectorAll("button").forEach(b => b.onclick = () => abrir(b.dataset.id));
+  function abrir(id) {
+    const d = lista.find(x => x.id === id) || lista[0];
+    document.getElementById("titulo").textContent = d.titulo;
+    document.title = d.titulo + " · Gimnasio Real de la Sabana";
+    tabs.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.id === d.id));
+    history.replaceState(null, "", location.pathname + "?" + new URLSearchParams({ c: q.get("c"), d: q.get("d"), doc: d.id }) + (window.GRS_DEMO ? "&demo" : ""));
+    let h = "";
+    for (let n = 1; n <= d.paginas; n++) {
+      h += `<div class="pag"><img loading="lazy" draggable="false" alt="Página ${n}" src="doc-colegio/${d.id}/${String(n).padStart(3, "0")}.jpg">
+        <div class="marca-agua"><span>${marca}</span></div><div class="num">${n} / ${d.paginas}</div></div>`;
+    }
+    v.innerHTML = h; window.scrollTo(0, 0);
+  }
+  abrir(q.get("doc"));
+})();
+</script>
+</body>
+</html>

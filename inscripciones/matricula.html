@@ -129,6 +129,16 @@
     pintarFactura(k);
   }
 
+  // Documentos del colegio que la familia declara conocer (solo lectura, desde que se aprueba el pago)
+  function docsColegio() {
+    const u = id => "visor.html?" + new URLSearchParams({ c: codigo, d: docNum, doc: id }) + DEMO_Q;
+    return `<div class="aviso aviso-i" style="margin-top:12px">📚 <b>Documentos institucionales</b> — al firmar declaran conocerlos y se comprometen a cumplirlos. Puede leerlos en línea:
+      <div class="acciones" style="margin:10px 0 0;justify-content:flex-start">
+        <a class="btn btn-s" target="_blank" rel="noopener" href="${u("pei")}">Proyecto Educativo Institucional (PEI)</a>
+        <a class="btn btn-s" target="_blank" rel="noopener" href="${u("manual")}">Manual de Convivencia</a>
+        <a class="btn btn-s" target="_blank" rel="noopener" href="${u("siee")}">Sistema de Evaluación (SIEE)</a></div></div>`;
+  }
+
   // ---------- Firma a distancia: quien no estaba presente firma desde su celular ----------
   function pintarFirmaRemota(k) {
     const f = m && DOCS.firmantes(i, m).find(x => x.k === k && x.k !== "estudiante");
@@ -142,6 +152,7 @@
       <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer el contrato educativo ${C.anio}</summary><div class="doc-vista" id="r-contrato"></div></details>
       <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer la carta de compromiso familiar</summary><div class="doc-vista" id="r-carta"></div></details>
       <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer el pagaré y la carta de instrucciones</summary><div class="doc-vista" id="r-pagare"></div></details>
+      ${docsColegio()}
       <label class="check" style="margin-top:12px"><input type="checkbox" id="r-acepto"><span>He leído y <b>acepto</b> el contrato educativo, la carta de compromiso familiar y el pagaré con su carta de instrucciones.</span></label>
       <div class="firma-caja"><h4>${esc(f.rol)} <span class="req">*</span></h4><div class="nota" style="margin:0 0 6px">${esc(f.nombre)} · ${esc(f.doc)}</div>
         <div class="firma-pad" data-f="${k}"><canvas></canvas><button type="button" class="mini-btn borrar">Borrar</button></div></div>
@@ -339,13 +350,14 @@
 
       <h2 style="margin-top:22px">Documentos para firmar</h2>
       <p class="ayuda">Ya están llenos con los datos de la inscripción. Léalos y acéptelos; al final firman una sola vez.</p>
+      ${docsColegio()}
       <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer el contrato educativo ${C.anio}</summary><div class="doc-vista" id="v-contrato"></div></details>
       <label class="check" style="margin-top:10px"><input type="checkbox" id="ac-contrato"><span>He leído y <b>aceptamos el contrato de servicio privado educativo</b> — matrícula ${C.anio}.</span></label>
       <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer la carta de compromiso familiar</summary><div class="doc-vista" id="v-carta"></div></details>
       <label class="check" style="margin-top:10px"><input type="checkbox" id="ac-carta"><span>He leído y <b>aceptamos la carta de compromiso familiar</b> ${C.anio}.</span></label>
       <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer el pagaré y la carta de instrucciones</summary><div class="doc-vista" id="v-pagare"></div></details>
       <label class="check" style="margin-top:10px"><input type="checkbox" id="ac-pagare"><span><b>Suscribimos el pagaré en blanco y su carta de instrucciones</b> como garantía del contrato.</span></label>
-      <label class="check" style="margin-top:12px"><input type="checkbox" id="ac-folio"><span>Declaramos que la información es veraz, aceptamos el PEI y el Manual de Convivencia del colegio y <b>formalizamos la matrícula ${C.anio}</b>.</span></label>
+      <label class="check" style="margin-top:12px"><input type="checkbox" id="ac-folio"><span>Declaramos que la información es veraz, que conocemos y aceptamos el PEI, el Manual de Convivencia y el Sistema Institucional de Evaluación (SIEE) del colegio, y <b>formalizamos la matrícula ${C.anio}</b>.</span></label>
 
       <h2 style="margin-top:12px">¿Quiénes firman la matrícula?</h2>
       <p class="ayuda">El responsable financiero y el acudiente siempre firman. Marque a las demás personas solo si van a firmar; quien no firme no aparece como parte del contrato (sus datos siguen en la inscripción).</p>
@@ -485,6 +497,7 @@ ${linkFirma(k)}`;
   function pintarEnviada() {
     V.innerHTML = cab() + `<div class="card">${etapas(4)}
       <div class="aviso aviso-a">📨 <b>Matrícula enviada — Folio N.° ${esc(m.folio)}.</b> El colegio revisará los documentos y confirmará la matrícula. Al confirmarla se genera el carné digital ${C.anio}.</div>
+      ${docsColegio()}
       ${botonesDocs()}</div>`;
     enlazarCab(); enlazarImp();
   }
@@ -494,7 +507,7 @@ ${linkFirma(k)}`;
       <div class="aviso aviso-ok">🎉 <b>¡Matrícula ${C.anio} confirmada!</b> Folio N.° ${esc(m.folio)}. Bienvenidos al Colegio Gimnasio Real de la Sabana.</div>
       ${c ? `<h2>Carné digital ${C.anio}</h2><div id="v-carne" style="margin:10px 0 6px">${DOCS.carne(c)}</div>
         <div class="acciones" style="justify-content:center"><a class="btn btn-ok" href="carnet.html?id=${encodeURIComponent(c.id)}${DEMO_Q}" target="_blank" rel="noopener">Abrir carné</a></div>` : ""}
-      ${botonesDocs()}</div>`;
+      ${botonesDocs()}${docsColegio()}</div>`;
     if (c) DOCS.pintarQR($("#v-carne"));
     enlazarCab(); enlazarImp();
   }

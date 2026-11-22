@@ -1,0 +1,20 @@
+[
+ {
+  "id": "pei",
+  "titulo": "Proyecto Educativo Institucional (PEI)",
+  "corto": "PEI",
+  "paginas": 87
+ },
+ {
+  "id": "manual",
+  "titulo": "Manual de Convivencia",
+  "corto": "Manual de Convivencia",
+  "paginas": 79
+ },
+ {
+  "id": "siee",
+  "titulo": "Sistema Institucional de Evaluación Escolar (SIEE)",
+  "corto": "SIEE",
+  "paginas": 34
+ }
+]

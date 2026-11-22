@@ -1,4 +1,6 @@
 User-agent: *
+Disallow: /inscripciones/doc-colegio/
+Disallow: /inscripciones/visor.html
 Allow: /
 Disallow: /herramientas/
 Disallow: /inscripciones/admin.html
