@@ -157,8 +157,11 @@
     const g = legal(cfg);
     return `<div class="firma-doc">${imgRector(cfg, m)}<div class="linea"><b>${esc(g.rector || PC)}</b><br>C.C. ${esc(g.ccRector || PC)}<br>${esc(g.cargoRector || "Rector")}<br>Colegio Gimnasio Real de la Sabana${g.telefono ? "<br>Cel. " + esc(g.telefono) : ""}${g.correo ? "<br>" + esc(g.correo) : ""}</div></div>`;
   }
-  const firmasDe = (lista, m) => lista.map(x => firma(((m && m.firmas) || {})[x.k], x.rol, x.doc)).join("");
-  const nombres = lista => lista.map(p => `${B(p.nombre)}`).join(" y ");
+  const firmasDe = (lista, m) => lista.map(x => firma(((m && m.firmas) || {})[x.k] || { nombre: x.nombre }, x.rol, x.doc)).join("");
+  // "Acudiente (Abuela) · Responsable financiero" → "acudiente, abuela, responsable financiero"
+  const rolTexto = x => x.rol.replace(/\s*\((.*?)\)/, ", $1").replace(/ · /g, ", ").toLowerCase();
+  const yLista = a => a.length > 1 ? a.slice(0, -1).join(", ") + " y " + a[a.length - 1] : a.join("");
+  const nombres = lista => yLista(lista.map(p => `${B(p.nombre)} (${esc(rolTexto(p))})`));
   const tituloGrado = g => GRS.PREESCOLAR.includes(g) ? "PARA GRADO " + g.toUpperCase() : "PARA GRADOS DE PRIMARIA — GRADO " + g.toUpperCase();
 
   function contrato(i, m, cfg) {
@@ -167,7 +170,7 @@
     const dia = Number(mt.diaPension) || 5, mora = Number(g.moraPct) || 10;
     const otros = GRS.cobrosPara(i.grado, cfg), vOtros = otros.reduce((s, o) => s + (Number(o.valor) || 0), 0);
     const ps = partes(i, m);
-    const p = ps.map(x => `${B(x.nombre)}, mayor de edad, identificado(a) con ${esc(x.doc.replace("C.C.", "C.C. Número"))}`).join(" y ");
+    const p = yLista(ps.map(x => `${B(x.nombre)} (${esc(rolTexto(x))}), mayor de edad, identificado(a) con ${esc(x.doc.replace("C.C.", "C.C. Número"))}`));
     const custodia = m.custodia ? (m.custodia === "Otro" ? "Otro: " + (m.custodiaOtro || "") : m.custodia) : "";
     return `<div class="hoja">
       ${encabezado(cfg, "CONTRATO DE SERVICIO PRIVADO EDUCATIVO — MATRÍCULA " + C.anio, tituloGrado(i.grado) + (m.folio ? " · Folio de matrícula N.° " + esc(m.folio) : ""))}
