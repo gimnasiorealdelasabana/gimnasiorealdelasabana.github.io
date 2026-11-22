@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía de inscripción y matrícula 2027 · Gimnasio Real de la Sabana</title>
+<meta name="description" content="Paso a paso para padres: inscripción, pago, factura, matrícula con firmas y carné digital 2027 del Colegio Gimnasio Real de la Sabana, Madrid, Cundinamarca.">
+<meta property="og:title" content="Inscripción y matrícula 2027 — Colegio Gimnasio Real de la Sabana">
+<meta property="og:description" content="Paso a paso para padres de familia: desde la inscripción hasta el carné digital.">
+<meta property="og:image" content="https://gimnasiorealdelasabana.github.io/inscripciones/logo.jpeg">
+<meta name="theme-color" content="#d3182b">
+<link rel="icon" href="logo.jpeg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .fase { display: flex; align-items: center; gap: 12px; margin: 0 0 6px; }
+  .fase .n { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--rojo); color: #fff; font-weight: 800; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+  .fase h2 { margin: 0; }
+  ol.pasos-g { margin: 12px 0 0; padding-left: 22px; }
+  ol.pasos-g li { margin-bottom: 10px; line-height: 1.5; }
+  .btn-g { display: flex; justify-content: center; margin-top: 14px; }
+  .btn-g a { text-decoration: none; }
+  table.val { width: 100%; border-collapse: collapse; font-size: 14.5px; margin-top: 8px; }
+  table.val th, table.val td { padding: 8px 6px; border-bottom: 1px solid var(--linea); text-align: left; }
+  table.val td.n { text-align: right; font-weight: 700; white-space: nowrap; }
+  .indice { display: flex; flex-wrap: wrap; gap: 8px; }
+  .indice a { background: #fff; border: 1.5px solid var(--linea); border-radius: 999px; padding: 7px 13px; font-weight: 700; font-size: 14px; color: var(--azul); text-decoration: none; }
+  details.faq { border: 1.5px solid var(--linea); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; background: #fff; }
+  details.faq summary { font-weight: 800; cursor: pointer; color: var(--azul); }
+  details.faq p { margin: 8px 0 0; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="marca">
+    <img src="logo.jpeg" alt="Escudo Colegio Gimnasio Real de la Sabana">
+    <div>
+      <div class="t1">Colegio</div>
+      <div class="t2">Gimnasio Real de la Sabana</div>
+      <div class="t3">Preescolar y Primaria · Madrid, Cundinamarca</div>
+    </div>
+  </div>
+  <h1 class="hero-tit">Inscripción y matrícula <span class="anio">2027</span></h1>
+  <p class="hero-sub">Guía paso a paso para padres de familia: todo se hace desde el celular, desde la inscripción hasta el carné digital.</p>
+</header>
+
+<main class="wrap">
+  <div class="card">
+    <h2>El recorrido completo</h2>
+    <p class="ayuda">Son 4 etapas. Guarde bien el <b>código de inscripción</b> que recibe al inscribirse: con él y el documento del estudiante hace todo lo demás.</p>
+    <div class="indice"><a href="#e1">1. Inscripción</a><a href="#e2">2. Cupo guardado</a><a href="#e3">3. Factura y pago</a><a href="#e4">4. Folio, firmas y carné</a><a href="#preguntas">Preguntas</a></div>
+  </div>
+
+  <!-- 1 -->
+  <section class="card" id="e1">
+    <div class="fase"><span class="n">1</span><h2>Inscripción en línea</h2></div>
+    <ol class="pasos-g">
+      <li>Abra el formulario: <b>gimnasiorealdelasabana.github.io/inscripciones</b></li>
+      <li>Elija si el estudiante es <b>nuevo</b> o de <b>continuidad</b> (ya estudia en el colegio) y llene los 5 pasos: datos del estudiante, salud, familia, acudiente y aceptación.</li>
+      <li>Puede <b>tomar la foto</b> del estudiante con el celular o subirla desde la galería.</li>
+      <li>Al enviar recibe un <b>código</b> (ejemplo: <b>RS27-K7QP-M2ZD</b>). <b>Tómele pantallazo o guárdelo.</b></li>
+    </ol>
+    <div class="btn-g"><a class="btn btn-p" href="./">📝 Ir al formulario de inscripción</a></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="card" id="e2">
+    <div class="fase"><span class="n">2</span><h2>Pago de la inscripción: cupo guardado</h2></div>
+    <ol class="pasos-g">
+      <li>Acérquese a la <b><span id="g-lugar">secretaría del colegio</span></b> con el código y pague la inscripción <b>en efectivo</b>:
+        <table class="val"><tr><th>Estudiante nuevo</th><td class="n" id="g-nuevo">$ 55.000</td></tr><tr><th>Estudiante de continuidad</th><td class="n" id="g-cont">$ 50.000</td></tr></table></li>
+      <li>Tiene <b><span id="g-dias">8</span> días</b> para pagar (<span id="g-horario">lunes a viernes de 7:00 a.m. a 3:00 p.m.</span>). <b>Si no paga a tiempo, el cupo puede asignarse a otro estudiante.</b></li>
+      <li>Cuando el colegio registra el pago, su inscripción queda en <b>«Cupo guardado»</b>.</li>
+    </ol>
+  </section>
+
+  <!-- 3 -->
+  <section class="card" id="e3">
+    <div class="fase"><span class="n">3</span><h2>Factura de matrícula y pago</h2></div>
+    <ol class="pasos-g">
+      <li>Entre al formulario, toque <b>«🔎 Consultar mi inscripción»</b>, escriba el código y el documento del estudiante y toque <b>«🎓 Ver factura y matricular»</b>. El colegio también le puede enviar este enlace por WhatsApp.</li>
+      <li>Indique quién es el <b>responsable financiero</b> (mamá, papá o acudiente): <b>a su nombre sale la factura</b> y su firma es obligatoria.</li>
+      <li>Revise su <b>factura de matrícula</b>. Incluye la matrícula, los otros costos educativos y la <b>pensión de febrero</b>:
+        <table class="val" id="g-totales"><tr><th>Grado</th><th style="text-align:right">Total factura</th></tr></table></li>
+      <li><b>Cómo pagar:</b> <span id="g-medios">pago virtual a la cuenta del Banco Caja Social o en sus corresponsales.</span></li>
+      <li>Después de pagar, <b>suba la foto del comprobante</b> en la misma página («Reportar pago de matrícula»). Si pagó en la secretaría, el colegio lo registra con su recibo.</li>
+      <li>Cuando el colegio apruebe el pago, le avisamos por WhatsApp.</li>
+    </ol>
+    <div class="btn-g"><a class="btn btn-a" href="matricula.html">🎓 Ir a mi matrícula</a></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="card" id="e4">
+    <div class="fase"><span class="n">4</span><h2>Folio de matrícula, firmas y carné</h2></div>
+    <ol class="pasos-g">
+      <li>Con el mismo enlace de matrícula, ahora le aparece el <b>folio</b>. Los datos ya vienen de la inscripción: <b>no tiene que volver a escribirlos</b>.</li>
+      <li>Suba una foto clara o PDF de cada documento:
+        <ul id="g-docs"><li>Registro civil de nacimiento del estudiante</li><li>Documento de identidad del acudiente</li><li>Certificado de afiliación a EPS</li><li>Carné de vacunas</li><li>Certificado del grado anterior (solo estudiantes nuevos)</li></ul></li>
+      <li>Responda dos preguntas: quién tiene la custodia en caso de separación y si autoriza el uso de fotos y videos del estudiante.</li>
+      <li>Lea el <b>contrato educativo</b>, la <b>carta de compromiso familiar</b> y el <b>pagaré</b>. Ya están llenos con sus datos; solo debe aceptarlos.</li>
+      <li>Marque <b>quiénes firman</b>. El responsable financiero y el acudiente firman siempre; el otro padre solo si lo marcan.</li>
+      <li><b>Firme con el dedo</b> en la pantalla. Si alguien no está presente, toque <b>«📲 Enviarle un enlace para firmar desde su celular»</b>: le llega por WhatsApp, firma desde donde esté y después ustedes envían.</li>
+      <li>Toque <b>«Enviar matrícula»</b>. El colegio revisa y la confirma.</li>
+      <li>🎉 Al confirmarla recibe el <b>carné digital <span class="anio">2027</span></b> del estudiante, con foto y código QR, en la misma página de matrícula y por WhatsApp. Lo puede guardar o imprimir.</li>
+    </ol>
+  </section>
+
+  <section class="card" id="preguntas">
+    <h2>Preguntas frecuentes</h2>
+    <details class="faq"><summary>Perdí el código de inscripción</summary><p>Escríbanos por WhatsApp con el nombre y el documento del estudiante y se lo enviamos.</p></details>
+    <details class="faq"><summary>Tengo varios hijos</summary><p>Haga una inscripción por cada hijo. Cada uno tiene su propio código, su factura y su carné.</p></details>
+    <details class="faq"><summary>Uno de los padres vive en otro lugar o trabaja lejos</summary><p>En el folio, toque «📲 Enviarle un enlace para firmar desde su celular». Esa persona firma desde su celular y luego ustedes envían la matrícula.</p></details>
+    <details class="faq"><summary>¿Puedo dejar el folio a medias?</summary><p>Sí. Toque «💾 Guardar avance» y continúe después con el mismo enlace: lo que ya hizo queda guardado.</p></details>
+    <details class="faq"><summary>¿Quién debe ser el responsable financiero?</summary><p>La persona que asume los pagos de matrícula y pensiones. A su nombre salen las facturas y su firma es obligatoria.</p></details>
+    <details class="faq"><summary>¿Cuándo se pagan las pensiones?</summary><p>La de febrero se paga con la matrícula. Las de marzo a noviembre, dentro de los primeros <span id="g-dia">5</span> días de cada mes.</p></details>
+  </section>
+
+  <div class="card" style="text-align:center">
+    <h2>¿Necesita ayuda?</h2>
+    <p class="ayuda">Escríbanos por WhatsApp o visítenos en la Carrera 6 No. 5-05, Centro, Madrid, Cundinamarca.</p>
+    <a class="btn btn-ok" style="text-decoration:none" href="https://wa.me/573002153138?text=Hola%2C%20necesito%20ayuda%20con%20la%20inscripci%C3%B3n%20o%20matr%C3%ADcula%202027." target="_blank" rel="noopener">💬 WhatsApp 300 215 3138</a>
+  </div>
+</main>
+
+<footer class="pie">Colegio Gimnasio Real de la Sabana · Carrera 6 No. 5-05, Centro · Madrid, Cundinamarca<br>Sus datos están protegidos conforme a la Ley 1581 de 2012.</footer>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  // Toma los valores vigentes de la configuración del colegio (si no hay conexión, queda el texto por defecto)
+  const { C, GRADOS, Store, pesos, esc, calcFactura } = GRS;
+  document.querySelectorAll(".anio").forEach(e => e.textContent = C.anio);
+  const $ = s => document.querySelector(s);
+  let cfg;
+  try { await Store.init(); cfg = await Store.getConfig(); } catch (e) { return; }
+  $("#g-nuevo").textContent = pesos(cfg.valorNuevo); $("#g-cont").textContent = pesos(cfg.valorContinuidad);
+  $("#g-dias").textContent = cfg.diasPlazo; $("#g-horario").textContent = cfg.horario; $("#g-lugar").textContent = (cfg.lugarPago || "secretaría del colegio").toLowerCase();
+  const mt = cfg.matricula;
+  $("#g-medios").textContent = mt.mediosPago;
+  $("#g-dia").textContent = mt.diaPension || 5;
+  // total de la factura por grado (agrupa los grados con el mismo valor)
+  const filas = [];
+  GRADOS.forEach(g => { const t = calcFactura({ grado: g }, cfg).total; const u = filas[filas.length - 1];
+    if (u && u.t === t) u.g.push(g); else filas.push({ g: [g], t }); });
+  $("#g-totales").innerHTML = `<tr><th>Grado</th><th style="text-align:right">Total factura</th></tr>` +
+    filas.map(f => `<tr><td>${esc(f.g.length > 2 ? f.g[0] + " a " + f.g[f.g.length - 1] : f.g.join(" y "))}</td><td class="n">${pesos(f.t)}</td></tr>`).join("");
+  $("#g-docs").innerHTML = (mt.documentos || []).map(d => `<li>${esc(d.titulo)}${d.para === "nuevo" ? " (solo estudiantes nuevos)" : d.para === "continuidad" ? " (solo continuidad)" : ""}</li>`).join("");
+})();
+</script>
+</body>
+</html>
