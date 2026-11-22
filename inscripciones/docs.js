@@ -65,7 +65,10 @@
     if (i.padreNombre && !mismo(i.padreCC, i.padreNombre)) r.push({ k: "padre", rol: "Padre", nombre: i.padreNombre, doc: "C.C. " + (i.padreCC || ""), req: false });
     const rf = responsable(m), x = rf && r.find(f => f.k === rf.k);
     if (x) { x.req = true; x.rol += " · Responsable financiero"; if (rf.cc) x.doc = "C.C. " + rf.cc; }
-    return r;
+    // Si la familia ya indicó quiénes firman (m.acepta.firman), solo quedan esas personas
+    // (más el acudiente y el responsable financiero, que siempre firman). El estudiante no cambia.
+    const firman = m && m.acepta && Array.isArray(m.acepta.firman) ? m.acepta.firman : null;
+    return firman ? r.filter(f => f.k === "estudiante" || f.req || firman.includes(f.k)) : r;
   }
 
   // ---------- FACTURA DE MATRÍCULA (documento de cobro interno) ----------
