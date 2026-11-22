@@ -31,17 +31,23 @@
   };
 
   // ---------- Matrícula 2027: todo editable en el panel → Configuración → Matrícula ----------
-  // Los valores arrancan en 0 / vacíos: el colegio los llena cuando los tenga.
+  // Valores iniciales tomados de los contratos educativos 2027 del Gimnasio
+  // (Downloads\Gimnasio real de la sabana\contratos y otros).
   const MESES = ["Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre"];
-  const VALORES_BASE = {};
-  GRADOS.forEach(g => VALORES_BASE[g] = { matricula: 0, pension: 0 });
+  const VALORES_BASE = {
+    "Prejardín": { matricula: 360000, pension: 360000 },
+    "Jardín": { matricula: 358128, pension: 358128 },
+    "Transición": { matricula: 355183, pension: 355183 }
+  };
+  ["Primero", "Segundo", "Tercero", "Cuarto", "Quinto"].forEach(g => VALORES_BASE[g] = { matricula: 299147, pension: 299147 });
   const MATRICULA_BASE = {
     abierta: true,
     valores: VALORES_BASE,          // { grado: { matricula, pension } }
-    otrosCobros: [],                // [{ nombre, valor, periodicidad, aplica: "todos"|"preescolar"|"primaria"|<grado> }]
+    // [{ nombre, valor, periodicidad, aplica: "todos"|"preescolar"|"primaria"|<grado> }]
+    otrosCobros: [{ nombre: "Otros costos educativos: plataforma, guías, libro, ABC, carné, seguro estudiantil y escuela de padres", valor: 570450, periodicidad: "Anual", aplica: "todos" }],
     fechaLimite: "",                // fecha máxima para pagar y matricular
-    mediosPago: "Efectivo en la secretaría del colegio.",
-    diaPension: 0,                  // la pensión se paga dentro de los primeros N días de cada mes
+    mediosPago: "Pago virtual a la cuenta corriente del Banco Caja Social N.° 21003894458, o en cualquiera de los corresponsales autorizados con el convenio N.° 15758743, a nombre de Gimnasio Real de la Sabana.",
+    diaPension: 5,                  // la pensión se paga dentro de los primeros N días de cada mes
     // Lista sugerida, se edita en el panel
     documentos: [
       { titulo: "Registro civil de nacimiento del estudiante", para: "todos" },
@@ -50,10 +56,12 @@
       { titulo: "Carné de vacunas", para: "todos" },
       { titulo: "Certificado del grado anterior", para: "nuevo" }
     ],
-    contratoTexto: "",              // texto del contrato del Gimnasio (lo pega el colegio)
-    pagareTexto: "",                // texto del pagaré y carta de instrucciones (opcional)
-    legal: { razonSocial: "", nit: "", resolucion: "", rector: "", cargoRector: "Rectoría",
-      direccion: "Carrera 6 No. 5-05, Centro, Madrid, Cundinamarca", telefono: "" }
+    // Datos legales de los contratos 2027 del Gimnasio
+    legal: { razonSocial: "GIMNASIO REAL DE LA SABANA S.A.", nit: "900.757.003-6",
+      resolucion: "Resolución N.° 020309 del 31 de julio de 2026 del MEN",
+      rector: "DESIDERIO PERDOMO ÁVILA", ccRector: "3.150.943 de Ricaurte", cargoRector: "Rector y Representante Legal",
+      direccion: "Carrera 6 No. 5-05, Centro, Madrid, Cundinamarca", telefono: "300 215 3138", correo: "g.realdelasabana@gmail.com",
+      moraPct: 10 }
   };
   CONFIG_BASE.matricula = MATRICULA_BASE;
   const PREESCOLAR = ["Prejardín", "Jardín", "Transición"];
@@ -195,7 +203,7 @@
       r.matricula.valores = {};
       GRADOS.forEach(g => r.matricula.valores[g] = Object.assign({}, VALORES_BASE[g], (m.valores || {})[g] || {}));
       r.matricula.legal = Object.assign({}, MATRICULA_BASE.legal, m.legal || {});
-      r.matricula.otrosCobros = Array.isArray(m.otrosCobros) ? m.otrosCobros : [];
+      r.matricula.otrosCobros = Array.isArray(m.otrosCobros) ? m.otrosCobros : MATRICULA_BASE.otrosCobros;
       r.matricula.documentos = Array.isArray(m.documentos) ? m.documentos : MATRICULA_BASE.documentos;
       return r;
     },

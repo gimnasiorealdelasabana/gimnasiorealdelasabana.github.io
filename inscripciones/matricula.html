@@ -182,7 +182,6 @@
     const prev = m || {};
     const subidos = Object.assign({}, prev.subidos || {});
     const reqs = docsRequeridos(), fs = DOCS.firmantes(i);
-    const hayContrato = !!cfg.matricula.contratoTexto, hayPagare = !!cfg.matricula.pagareTexto;
     const firmas = {};
     const borrador = Object.assign({}, prev, { acuExpedida: prev.acuExpedida || "", acuCorreo: prev.acuCorreo || i.acuCorreo || "", folio: prev.folio || "(se asigna al enviar)", firmas: {} });
     V.innerHTML = cab() + `<div class="card">${etapas(3)}
@@ -208,16 +207,27 @@
         <div style="display:flex;gap:8px"><button type="button" class="mini-btn b-ver" ${subidos[d.k] ? "" : "hidden"}>Ver</button>
         <label class="mini-btn" style="cursor:pointer"><span>${subidos[d.k] ? "Cambiar" : "📎 Adjuntar"}</span><input type="file" accept="image/*,application/pdf"></label></div></div>`).join("")}</div>` : ""}
 
-      ${hayContrato ? `<h2 style="margin-top:22px">Contrato de prestación de servicios educativos</h2>
-      <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">Leer el contrato</summary><div class="doc-vista" id="v-contrato"></div></details>
-      <label class="check" style="margin-top:10px"><input type="checkbox" id="ac-contrato"><span>He leído y <b>acepto el contrato</b> de prestación de servicios educativos ${C.anio}.</span></label>` : ""}
-      ${hayPagare ? `<h2 style="margin-top:12px">Pagaré y carta de instrucciones</h2>
-      <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">Leer el pagaré</summary><div class="doc-vista" id="v-pagare"></div></details>
-      <label class="check" style="margin-top:10px"><input type="checkbox" id="ac-pagare"><span>Como acudiente, <b>suscribo el pagaré y su carta de instrucciones</b>.</span></label>` : ""}
+      <h2 style="margin-top:22px">Dos datos para el contrato</h2>
+      <div class="grid">
+        <div class="c12"><label class="f">En caso de separación de los padres, ¿quién tiene la custodia? <span class="req">*</span></label>
+          <div class="chips">${["No aplica", "El padre", "La madre", "Ambos padres", "Otro"].map(x => `<label><input type="radio" name="custodia" value="${x}" ${prev.custodia === x ? "checked" : ""}> ${x}</label>`).join("")}</div></div>
+        <div class="c12" id="caja-cust-otro" ${prev.custodia === "Otro" ? "" : "hidden"}><label class="f">¿Quién? <span class="req">*</span></label><input id="m-cust-otro" value="${esc(prev.custodiaOtro || "")}" placeholder="Nombre y parentesco"></div>
+        <div class="c12"><label class="f">¿Autorizan el uso de fotografías, imágenes y videos del estudiante para publicidad institucional, redes sociales y celebraciones del colegio? <span class="req">*</span></label>
+          <div class="chips"><label><input type="radio" name="imagen" value="SI" ${prev.autorizaImagen === "SI" ? "checked" : ""}> Sí autorizamos</label><label><input type="radio" name="imagen" value="NO" ${prev.autorizaImagen === "NO" ? "checked" : ""}> No autorizamos</label></div></div>
+      </div>
+
+      <h2 style="margin-top:22px">Documentos para firmar</h2>
+      <p class="ayuda">Ya están llenos con los datos de la inscripción. Léalos y acéptelos; al final firman una sola vez.</p>
+      <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer el contrato educativo ${C.anio}</summary><div class="doc-vista" id="v-contrato"></div></details>
+      <label class="check" style="margin-top:10px"><input type="checkbox" id="ac-contrato"><span>He leído y <b>aceptamos el contrato de servicio privado educativo</b> — matrícula ${C.anio}.</span></label>
+      <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer la carta de compromiso familiar</summary><div class="doc-vista" id="v-carta"></div></details>
+      <label class="check" style="margin-top:10px"><input type="checkbox" id="ac-carta"><span>He leído y <b>aceptamos la carta de compromiso familiar</b> ${C.anio}.</span></label>
+      <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer el pagaré y la carta de instrucciones</summary><div class="doc-vista" id="v-pagare"></div></details>
+      <label class="check" style="margin-top:10px"><input type="checkbox" id="ac-pagare"><span>Como acudiente, <b>suscribo el pagaré en blanco y su carta de instrucciones</b> como garantía del contrato.</span></label>
       <label class="check" style="margin-top:12px"><input type="checkbox" id="ac-folio"><span>Declaramos que la información es veraz, aceptamos el PEI y el Manual de Convivencia del colegio y <b>formalizamos la matrícula ${C.anio}</b>.</span></label>
 
       <h2 style="margin-top:12px">Firmas</h2>
-      <p class="ayuda">Firme con el dedo o el mouse dentro de cada recuadro.</p>
+      <p class="ayuda">Firme con el dedo o el mouse dentro de cada recuadro. Cada firma se pone automáticamente en el contrato, la carta de compromiso y el pagaré, donde corresponda.</p>
       ${fs.map(f => `<div class="firma-caja"><h4>${esc(f.rol)} ${f.req ? '<span class="req">*</span>' : '<small style="color:var(--gris);font-weight:400">(opcional)</small>'}</h4>
         <div class="nota" style="margin:0 0 6px">${esc(f.nombre)} · ${esc(f.doc)}</div>
         <div class="firma-pad" data-f="${f.k}"><canvas></canvas><button type="button" class="mini-btn borrar">Borrar</button></div></div>`).join("")}
@@ -229,11 +239,17 @@
     const vistaDocs = () => {
       borrador.acuExpedida = $("#m-exp").value.trim(); borrador.acuCorreo = $("#m-correo").value.trim();
       borrador.firmas = Object.assign({}, firmas);
-      if (hayContrato) $("#v-contrato").innerHTML = DOCS.contrato(i, borrador, cfg);
-      if (hayPagare) $("#v-pagare").innerHTML = DOCS.pagare(i, borrador, cfg);
+      const cu = document.querySelector('input[name="custodia"]:checked'), im = document.querySelector('input[name="imagen"]:checked');
+      borrador.custodia = cu ? cu.value : ""; borrador.custodiaOtro = $("#m-cust-otro").value.trim();
+      borrador.autorizaImagen = im ? im.value : "";
+      $("#caja-cust-otro").hidden = borrador.custodia !== "Otro";
+      $("#v-contrato").innerHTML = DOCS.contrato(i, borrador, cfg);
+      $("#v-carta").innerHTML = DOCS.carta(i, borrador, cfg);
+      $("#v-pagare").innerHTML = DOCS.pagare(i, borrador, cfg);
     };
     vistaDocs();
-    $$("#m-exp, #m-correo").forEach(e => e.addEventListener("input", vistaDocs));
+    $$("#m-exp, #m-correo, #m-cust-otro").forEach(e => e.addEventListener("input", vistaDocs));
+    $$('input[name="custodia"], input[name="imagen"]').forEach(e => e.addEventListener("change", vistaDocs));
 
     // adjuntar documentos (se guardan de una vez)
     $$("#lista-docs .doc-item").forEach(row => {
@@ -280,8 +296,12 @@
       const err = [];
       if (!$("#m-exp").value.trim()) err.push("lugar de expedición de la cédula del acudiente");
       reqs.forEach(d => { if (!subidos[d.k]) err.push(d.titulo); });
-      if (hayContrato && !$("#ac-contrato").checked) err.push("aceptar el contrato");
-      if (hayPagare && !$("#ac-pagare").checked) err.push("suscribir el pagaré");
+      if (!borrador.custodia) err.push("quién tiene la custodia");
+      if (borrador.custodia === "Otro" && !borrador.custodiaOtro) err.push("nombre de quien tiene la custodia");
+      if (!borrador.autorizaImagen) err.push("autorización de uso de imagen (sí o no)");
+      if (!$("#ac-contrato").checked) err.push("aceptar el contrato");
+      if (!$("#ac-carta").checked) err.push("aceptar la carta de compromiso");
+      if (!$("#ac-pagare").checked) err.push("suscribir el pagaré");
       if (!$("#ac-folio").checked) err.push("formalizar la matrícula");
       fs.filter(f => f.req && !firmas[f.k]).forEach(f => err.push("firma de " + f.rol.toLowerCase()));
       if (err.length) { $("#merr").innerHTML = "<b>Falta:</b> " + err.map(esc).join(" · "); $("#merr").hidden = false; $("#merr").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
@@ -290,7 +310,8 @@
         const folio = prev.folio || String(await Store.siguiente("folio" + C.anio)).padStart(4, "0");
         const docs = {}; reqs.forEach(d => docs[d.k] = { titulo: d.titulo });
         await guardarM({ folio, enviada: new Date().toISOString(), acuExpedida: $("#m-exp").value.trim(), acuCorreo: $("#m-correo").value.trim(),
-          acepta: { contrato: hayContrato, pagare: hayPagare, folio: true }, firmas, docs });
+          custodia: borrador.custodia, custodiaOtro: borrador.custodia === "Otro" ? borrador.custodiaOtro : "", autorizaImagen: borrador.autorizaImagen,
+          acepta: { contrato: true, carta: true, pagare: true, folio: true }, firmas, docs });
         await recargar(); window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (e) { console.error(e); $("#merr").textContent = "No se pudo enviar. Revise su conexión e intente de nuevo."; $("#merr").hidden = false; b.disabled = false; b.textContent = "Enviar matrícula ✓"; }
     };
@@ -299,13 +320,14 @@
   function botonesDocs() {
     return `<div class="acciones" style="justify-content:flex-start">
       <button class="btn btn-a" data-imp="folio">🖨️ Folio de matrícula</button>
-      ${cfg.matricula.contratoTexto ? `<button class="btn btn-s" data-imp="contrato">Contrato</button>` : ""}
-      ${cfg.matricula.pagareTexto ? `<button class="btn btn-s" data-imp="pagare">Pagaré</button>` : ""}
+      <button class="btn btn-s" data-imp="contrato">Contrato</button>
+      <button class="btn btn-s" data-imp="carta">Carta de compromiso</button>
+      <button class="btn btn-s" data-imp="pagare">Pagaré</button>
       <button class="btn btn-s" data-imp="factura">Factura</button></div>`;
   }
   function enlazarImp() {
     $$("[data-imp]").forEach(b => b.onclick = () => imprimir(
-      b.dataset.imp === "folio" ? DOCS.folio(i, m, a, cfg) : b.dataset.imp === "contrato" ? DOCS.contrato(i, m, cfg) : b.dataset.imp === "pagare" ? DOCS.pagare(i, m, cfg) : DOCS.factura(i, cfg, m, a)));
+      b.dataset.imp === "folio" ? DOCS.folio(i, m, a, cfg) : b.dataset.imp === "contrato" ? DOCS.contrato(i, m, cfg) : b.dataset.imp === "carta" ? DOCS.carta(i, m, cfg) : b.dataset.imp === "pagare" ? DOCS.pagare(i, m, cfg) : DOCS.factura(i, cfg, m, a)));
   }
   function pintarEnviada() {
     V.innerHTML = cab() + `<div class="card">${etapas(4)}

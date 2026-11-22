@@ -48,7 +48,8 @@ service cloud.firestore {
            request.resource.data.codigo == codigo
         && familiaDe(codigo, request.resource.data.numDoc)
         && request.resource.data.keys().hasOnly(['codigo', 'numDoc', 'anio', 'factura', 'pagoReportado', 'subidos',
-             'folio', 'enviada', 'acuExpedida', 'acuCorreo', 'acepta', 'firmas', 'docs']));
+             'folio', 'enviada', 'acuExpedida', 'acuCorreo', 'acepta', 'firmas', 'docs',
+             'custodia', 'custodiaOtro', 'autorizaImagen']));
     }
 
     // Lo que decide el colegio: pago aprobado/rechazado, corrección, confirmación, carné.

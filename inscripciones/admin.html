@@ -146,16 +146,15 @@
       <div class="c8"><label class="f">Razón social</label><input name="razonSocial" placeholder="Como aparece en el RUT"></div>
       <div class="c4"><label class="f">NIT</label><input name="nit"></div>
       <div class="c12"><label class="f">Resolución de aprobación</label><input name="resolucion" placeholder="Ej.: Licencia de funcionamiento Resolución N.° … de …"></div>
-      <div class="c8"><label class="f">Nombre de quien firma por el colegio</label><input name="rector"></div>
-      <div class="c4"><label class="f">Cargo</label><input name="cargoRector" placeholder="Rectora"></div>
+      <div class="c6"><label class="f">Nombre de quien firma por el colegio</label><input name="rector"></div>
+      <div class="c3"><label class="f">Cédula (y lugar)</label><input name="ccRector"></div>
+      <div class="c3"><label class="f">Cargo</label><input name="cargoRector" placeholder="Rector y Representante Legal"></div>
+      <div class="c4"><label class="f">Correo del colegio</label><input name="correoCol" type="email"></div>
+      <div class="c4"><label class="f">Recargo por mora en pensión (%)</label><input name="moraPct" type="number" min="0" max="50"></div>
       <div class="c8"><label class="f">Dirección</label><input name="direccionCol"></div>
       <div class="c4"><label class="f">Teléfono</label><input name="telefonoCol"></div>
 
-      <div class="sub">Contrato y pagaré del Gimnasio (opcional)</div>
-      <div class="c12"><p class="nota" style="margin:0 0 6px">Pegue aquí el texto del contrato del Gimnasio. Si lo deja vacío, la matrícula se hace sin contrato. Puede usar estos campos y se llenan solos:
-        <code>{acudiente} {cedula} {expedida} {direccion} {telefono} {correo} {estudiante} {documento} {grado} {nivel} {anio} {matricula} {matricula_letras} {pension} {pension_letras} {total} {total_letras} {folio} {fecha} {rector} {razon_social} {nit}</code>. Deje una línea en blanco entre párrafos.</p>
-        <label class="f">Texto del contrato</label><textarea name="contratoTexto" style="min-height:160px"></textarea></div>
-      <div class="c12"><label class="f">Texto del pagaré y carta de instrucciones</label><textarea name="pagareTexto" style="min-height:120px"></textarea></div>
+      <div class="c12"><p class="nota" style="margin:0">El contrato educativo (uno por nivel), la carta de compromiso familiar y el pagaré usan los textos 2027 del Gimnasio y se llenan solos con los datos de la inscripción, estos valores y estos datos legales. La familia solo firma.</p></div>
     </div>
     <div class="acciones"><button type="button" class="btn btn-s" data-cerrar>Cancelar</button><button class="btn btn-a">Guardar</button></div>
   </form>
@@ -395,8 +394,9 @@
         <div class="firmas-mini">${fs.map(f => `<div>${(m.firmas || {})[f.k] ? `<img src="${esc(m.firmas[f.k].img)}" alt="">` : "<i>sin firma</i>"}${esc(f.rol)}</div>`).join("")}</div>
         <div class="acciones" style="margin:8px 0 0;justify-content:flex-start">
           <button type="button" class="btn btn-s" data-imp="folio">🖨️ Folio</button>
-          ${cfg.matricula.contratoTexto ? `<button type="button" class="btn btn-s" data-imp="contrato">Contrato</button>` : ""}
-          ${cfg.matricula.pagareTexto ? `<button type="button" class="btn btn-s" data-imp="pagare">Pagaré</button>` : ""}
+          <button type="button" class="btn btn-s" data-imp="contrato">Contrato</button>
+          <button type="button" class="btn btn-s" data-imp="carta">Carta de compromiso</button>
+          <button type="button" class="btn btn-s" data-imp="pagare">Pagaré</button>
           ${ef === "enviada" ? `<button type="button" class="btn btn-ok" id="m-confirmar">✓ Confirmar matrícula y generar carné</button><button type="button" class="btn btn-s" id="m-corregir" style="color:var(--rojo)">Pedir corrección</button>` : ""}
           ${ef === "confirmada" && a.carnet ? `<a class="btn btn-ok" href="carnet.html?id=${encodeURIComponent(a.carnet)}${DEMO_Q}" target="_blank" rel="noopener">🪪 Ver carné</a>` : ""}
         </div></div>`;
@@ -444,7 +444,7 @@
       } catch (e) { falla(e); }
     };
     $$("#det [data-doc]").forEach(b => b.onclick = async () => verArchivo(await Store.doc("matriculas_docs", i.codigo + "_" + b.dataset.doc)));
-    $$("#det [data-imp]").forEach(b => b.onclick = () => imprimir(b.dataset.imp === "folio" ? DOCS.folio(i, m, a, cfg) : b.dataset.imp === "contrato" ? DOCS.contrato(i, m, cfg) : DOCS.pagare(i, m, cfg)));
+    $$("#det [data-imp]").forEach(b => b.onclick = () => imprimir(b.dataset.imp === "folio" ? DOCS.folio(i, m, a, cfg) : b.dataset.imp === "contrato" ? DOCS.contrato(i, m, cfg) : b.dataset.imp === "carta" ? DOCS.carta(i, m, cfg) : DOCS.pagare(i, m, cfg)));
     on("#m-corregir", () => {
       const mo = prompt("¿Qué debe corregir la familia? (lo verá al entrar)"); if (!mo) return;
       guardarA(i, { correccion: { motivo: mo, enviada: m.enviada, por: usuario } }).then(() => listo("Corrección solicitada — avísele por WhatsApp")).catch(falla);
@@ -683,7 +683,7 @@
     f.fechaLimite.value = mt.fechaLimite || ""; f.diaPension.value = mt.diaPension || ""; f.mediosPago.value = mt.mediosPago || "";
     f.razonSocial.value = lg.razonSocial || ""; f.nit.value = lg.nit || ""; f.resolucion.value = lg.resolucion || "";
     f.rector.value = lg.rector || ""; f.cargoRector.value = lg.cargoRector || ""; f.direccionCol.value = lg.direccion || ""; f.telefonoCol.value = lg.telefono || "";
-    f.contratoTexto.value = mt.contratoTexto || ""; f.pagareTexto.value = mt.pagareTexto || "";
+    f.ccRector.value = lg.ccRector || ""; f.correoCol.value = lg.correo || ""; f.moraPct.value = lg.moraPct ?? 10;
     $("#m-cfg").hidden = false;
   };
   $("#fcfg").onsubmit = async ev => {
@@ -713,8 +713,8 @@
       abierta: f.matAbierta.checked, valores, otrosCobros, documentos,
       fechaLimite: f.fechaLimite.value, diaPension: Number(f.diaPension.value) || 0, mediosPago: f.mediosPago.value.trim(),
       legal: { razonSocial: f.razonSocial.value.trim(), nit: f.nit.value.trim(), resolucion: f.resolucion.value.trim(), rector: f.rector.value.trim(),
-        cargoRector: f.cargoRector.value.trim() || "Rectoría", direccion: f.direccionCol.value.trim(), telefono: f.telefonoCol.value.trim() },
-      contratoTexto: f.contratoTexto.value.trim(), pagareTexto: f.pagareTexto.value.trim()
+        cargoRector: f.cargoRector.value.trim() || "Rector", direccion: f.direccionCol.value.trim(), telefono: f.telefonoCol.value.trim(),
+        ccRector: f.ccRector.value.trim(), correo: f.correoCol.value.trim(), moraPct: Number(f.moraPct.value) || 0 }
     });
     try { await Store.saveConfig(n); cfg = n; pintar(); $("#m-cfg").hidden = true; toast("Configuración guardada"); }
     catch (e) { toast("No se pudo guardar: " + e.message); }
