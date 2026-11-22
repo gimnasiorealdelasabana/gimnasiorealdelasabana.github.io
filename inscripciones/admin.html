@@ -118,8 +118,8 @@
     <div class="modal-cab"><h2>Configuración</h2><button type="button" class="x" data-cerrar>✕</button></div>
     <label class="check"><input type="checkbox" name="abierto"> <span><b>Inscripciones abiertas</b> — los padres pueden diligenciar el formulario.</span></label>
     <div class="grid">
-      <div class="c6"><label class="f">Inscripción estudiante nuevo (pesos)</label><input name="valorNuevo" type="number" min="0" step="1000"></div>
-      <div class="c6"><label class="f">Inscripción estudiante de continuidad (pesos)</label><input name="valorContinuidad" type="number" min="0" step="1000"></div>
+      <div class="c6"><label class="f">Inscripción estudiante nuevo (pesos)</label><input name="valorNuevo" type="number" min="0" step="1"></div>
+      <div class="c6"><label class="f">Inscripción estudiante de continuidad (pesos)</label><input name="valorContinuidad" type="number" min="0" step="1"></div>
       <div class="c6"><label class="f">Días de plazo para pagar</label><input name="diasPlazo" type="number" min="1" max="60"></div>
       <div class="c6"><label class="f">Fecha de cierre (opcional)</label><input name="fechaCierre" type="date"></div>
       <div class="c6"><label class="f">WhatsApp de secretaría</label><input name="whatsappSecretaria" type="tel" placeholder="3001234567"></div>
@@ -662,13 +662,13 @@
     const mt = cfg.matricula, lg = mt.legal;
     f.matAbierta.checked = mt.abierta !== false;
     $("#cfg-valores").innerHTML = `<tr><th>Grado</th><th>Matrícula</th><th>Pensión mensual</th></tr>` + GRADOS.map(g => `<tr><td><b>${g}</b></td>
-      <td><input type="number" min="0" step="1000" data-vg="${g}" data-vk="matricula" value="${mt.valores[g].matricula || 0}"></td>
-      <td><input type="number" min="0" step="1000" data-vg="${g}" data-vk="pension" value="${mt.valores[g].pension || 0}"></td></tr>`).join("");
+      <td><input type="number" min="0" step="1" data-vg="${g}" data-vk="matricula" value="${mt.valores[g].matricula || 0}"></td>
+      <td><input type="number" min="0" step="1" data-vg="${g}" data-vk="pension" value="${mt.valores[g].pension || 0}"></td></tr>`).join("");
     const opAplica = v => [["todos", "Todos los grados"], ["preescolar", "Solo preescolar"], ["primaria", "Solo primaria"]].concat(GRADOS.map(g => [g, "Solo " + g]))
       .map(([k, t]) => `<option value="${k}" ${v === k ? "selected" : ""}>${t}</option>`).join("");
     const opPer = v => ["Anual", "Semestral", "Única vez", "Mensual"].map(p => `<option ${v === p ? "selected" : ""}>${p}</option>`).join("");
     const filaOtro = o => `<tr data-otro><td><input data-ok="nombre" value="${esc(o.nombre || "")}" placeholder="Ej.: Seguro estudiantil"></td>
-      <td><input data-ok="valor" type="number" min="0" step="1000" value="${o.valor || 0}" style="width:120px"></td>
+      <td><input data-ok="valor" type="number" min="0" step="1" value="${o.valor || 0}" style="width:120px"></td>
       <td><select data-ok="periodicidad">${opPer(o.periodicidad)}</select></td>
       <td><select data-ok="aplica">${opAplica(o.aplica || "todos")}</select></td>
       <td><button type="button" class="mini-btn" data-del>🗑</button></td></tr>`;
