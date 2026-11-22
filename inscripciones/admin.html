@@ -415,7 +415,12 @@
           ${ef === "enviada" ? `<button type="button" class="btn btn-ok" id="m-confirmar">✓ Confirmar matrícula y generar carné</button><button type="button" class="btn btn-s" id="m-corregir" style="color:var(--rojo)">Pedir corrección</button>` : ""}
           ${ef === "confirmada" && a.carnet ? `<a class="btn btn-ok" href="carnet.html?id=${encodeURIComponent(a.carnet)}${DEMO_Q}" target="_blank" rel="noopener">🪪 Ver carné</a>` : ""}
         </div></div>`;
-    } else if (ep === "aprobado") h += `<p class="ayuda" style="margin:10px 0 0">La familia aún no ha enviado el folio (documentos y firmas).</p>`;
+    } else if (ep === "aprobado") {
+      // folio en proceso: quién falta por firmar (p. ej. un padre que firma a distancia)
+      const faltan = m && m.acepta && m.acepta.firman ? DOCS.firmantes(i, m).filter(f => f.k !== "estudiante" && !(m.firmas || {})[f.k]) : [];
+      h += `<p class="ayuda" style="margin:10px 0 0">La familia aún no ha enviado el folio (documentos y firmas).${faltan.length
+        ? ` <b style="color:var(--alerta)">Folio en proceso — falta la firma de: ${faltan.map(f => esc(f.nombre) + " (" + esc(f.rol.toLowerCase()) + ")").join(", ")}.</b>` : ""}</p>`;
+    }
     return h + `</div>`;
   }
 

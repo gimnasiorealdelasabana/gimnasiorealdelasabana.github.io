@@ -112,6 +112,8 @@
       V.innerHTML = cab() + `<div class="card">${etapas(0)}<div class="aviso aviso-a">⏳ <b>El cupo aún no está guardado.</b> Primero se paga la inscripción en efectivo en la secretaría. Cuando el colegio registre ese pago, aquí aparecerá la factura de matrícula.</div></div>`;
       return enlazarCab();
     }
+    // Enlace de firma a distancia (?firma=padre / madre / acudiente)
+    if (q.get("firma")) return pintarFirmaRemota(q.get("firma"));
     const ef = estadoFolio(m, a);
     if (ef === "confirmada") return pintarFinal();
     if (ef === "enviada") return pintarEnviada();
@@ -125,6 +127,43 @@
     if (!DOCS.responsable(m)) return pintarResponsable(aprobado);
     if (aprobado) return pintarMatricula(ef === "correccion");
     pintarFactura(k);
+  }
+
+  // ---------- Firma a distancia: quien no estaba presente firma desde su celular ----------
+  function pintarFirmaRemota(k) {
+    const f = m && DOCS.firmantes(i, m).find(x => x.k === k && x.k !== "estudiante");
+    const ef = estadoFolio(m, a);
+    const caja = html => { V.innerHTML = cab() + `<div class="card"><h2>Firma de la matrícula ${C.anio}</h2>${html}</div>`; enlazarCab(); };
+    if (!f) return caja(`<div class="aviso aviso-r">Este enlace de firma ya no es válido: la persona no está marcada para firmar o el folio aún no se ha preparado. Comuníquese con quien está haciendo la matrícula.</div>`);
+    if (ef === "enviada" || ef === "confirmada") return caja(`<div class="aviso aviso-ok">✅ La matrícula de <b>${esc(nombreEst(i))}</b> ya fue enviada al colegio${m.firmas && m.firmas[k] ? " con su firma" : ""}. No necesita hacer nada más.</div>`);
+    const firmas = Object.assign({}, m.firmas || {}), borr = Object.assign({}, m);
+    caja(`<p class="ayuda">Hola <b>${esc(f.nombre)}</b> (${esc(f.rol)}). Le pidieron firmar la matrícula ${C.anio} de <b>${esc(nombreEst(i))}</b>, grado ${esc(i.grado)}. Los documentos ya están llenos con los datos de la familia: léalos, acéptelos y firme abajo.</p>
+      ${firmas[k] ? `<div class="aviso aviso-ok">✅ Usted ya firmó. Si quiere, puede firmar de nuevo para reemplazar la firma.</div>` : ""}
+      <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer el contrato educativo ${C.anio}</summary><div class="doc-vista" id="r-contrato"></div></details>
+      <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer la carta de compromiso familiar</summary><div class="doc-vista" id="r-carta"></div></details>
+      <details><summary class="mini-btn" style="display:inline-block;cursor:pointer">📄 Leer el pagaré y la carta de instrucciones</summary><div class="doc-vista" id="r-pagare"></div></details>
+      <label class="check" style="margin-top:12px"><input type="checkbox" id="r-acepto"><span>He leído y <b>acepto</b> el contrato educativo, la carta de compromiso familiar y el pagaré con su carta de instrucciones.</span></label>
+      <div class="firma-caja"><h4>${esc(f.rol)} <span class="req">*</span></h4><div class="nota" style="margin:0 0 6px">${esc(f.nombre)} · ${esc(f.doc)}</div>
+        <div class="firma-pad" data-f="${k}"><canvas></canvas><button type="button" class="mini-btn borrar">Borrar</button></div></div>
+      <div id="r-err" class="aviso aviso-r" hidden></div>
+      <div class="acciones"><span></span><button class="btn btn-p" id="r-guardar">Guardar mi firma ✓</button></div>`);
+    const vista = () => { borr.firmas = Object.assign({}, firmas);
+      $("#r-contrato").innerHTML = DOCS.contrato(i, borr, cfg); $("#r-carta").innerHTML = DOCS.carta(i, borr, cfg); $("#r-pagare").innerHTML = DOCS.pagare(i, borr, cfg); };
+    vista();
+    armarPad($(".firma-pad"), f, firmas, vista);
+    $("#r-guardar").onclick = async () => {
+      const e = $("#r-err");
+      if (!$("#r-acepto").checked || !firmas[k]) { e.textContent = !firmas[k] ? "Firme dentro del recuadro." : "Marque que leyó y acepta los documentos."; e.hidden = false; return; }
+      const b = $("#r-guardar"); b.disabled = true; b.textContent = "Guardando…";
+      try {
+        const todas = await firmasAlDia({});
+        todas[k] = firmas[k];
+        await guardarM({ firmas: todas });
+        const tel = telWa(i.acuTel);
+        caja(`<div class="aviso aviso-ok">✅ <b>¡Gracias, ${esc(f.nombre)}!</b> Su firma quedó guardada en la matrícula de ${esc(nombreEst(i))}. Ya pueden enviar la matrícula al colegio.</div>
+          ${tel && k !== "acudiente" ? `<div class="acciones" style="justify-content:center"><a class="btn btn-ok" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${encodeURIComponent(`Hola ${i.acuNombre}, ya firmé la matrícula ${C.anio} de ${nombreEst(i)}. Ya la pueden enviar al colegio.`)}">📲 Avisar a ${esc(i.acuNombre)}</a></div>` : ""}`);
+      } catch (err) { console.error(err); e.textContent = "No se pudo guardar. Revise su conexión e intente de nuevo."; e.hidden = false; b.disabled = false; b.textContent = "Guardar mi firma ✓"; }
+    };
   }
 
   // ---------- Responsable financiero ----------
@@ -215,6 +254,45 @@
       .map(d => ({ k: "d_" + slug(d.titulo), titulo: d.titulo }));
   }
 
+  // Recuadro de firma: dibujo con dedo o mouse; si ya hay firma guardada, se muestra
+  function armarPad(pad, persona, firmas, alCambiar) {
+    const cv = pad.querySelector("canvas"), k = pad.dataset.f, g = cv.getContext("2d");
+    const previa = () => {
+      if (!firmas[k] || !firmas[k].img) return;
+      const im = new Image(), r = cv.getBoundingClientRect();
+      im.onload = () => g.drawImage(im, 0, 0, r.width, r.height); im.src = firmas[k].img;
+    };
+    // el tamaño se toma cuando el recuadro está visible (los ocultos se ajustan al mostrarse)
+    const ajustar = () => { const r = cv.getBoundingClientRect(); if (!r.width) return; pad._listo = true; cv.width = r.width * 2; cv.height = r.height * 2;
+      g.setTransform(2, 0, 0, 2, 0, 0); g.lineWidth = 2.4; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#111"; previa(); };
+    ajustar(); pad._ajustar = ajustar;
+    if (firmas[k]) pad.classList.add("ok");
+    let dib = false, trazos = 0;
+    const pos = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    cv.addEventListener("pointerdown", e => {
+      if (!pad._listo) ajustar();
+      if (firmas[k] && !trazos) { g.clearRect(0, 0, cv.width, cv.height); }   // firmar de nuevo reemplaza la anterior
+      dib = true; cv.setPointerCapture(e.pointerId); const [x, y] = pos(e); g.beginPath(); g.moveTo(x, y);
+    });
+    cv.addEventListener("pointermove", e => { if (!dib) return; const [x, y] = pos(e); g.lineTo(x, y); g.stroke(); trazos++; });
+    const fin = () => {
+      if (!dib) return; dib = false;
+      if (trazos > 8) {
+        const s = document.createElement("canvas"); s.width = 500; s.height = Math.round(500 * cv.height / cv.width);
+        s.getContext("2d").drawImage(cv, 0, 0, s.width, s.height);
+        firmas[k] = { img: s.toDataURL("image/png"), nombre: persona.nombre, doc: persona.doc, fecha: new Date().toISOString() };
+        pad.classList.add("ok"); alCambiar();
+      }
+    };
+    cv.addEventListener("pointerup", fin); cv.addEventListener("pointerleave", fin);
+    pad.querySelector(".borrar").onclick = () => { g.clearRect(0, 0, cv.width, cv.height); trazos = 0; delete firmas[k]; pad.classList.remove("ok"); alCambiar(); };
+  }
+  // Une las firmas guardadas en la base (p. ej. la que hizo el otro padre a distancia) con las de esta pantalla
+  async function firmasAlDia(locales) {
+    const ult = await Store.doc("matriculas", codigo).catch(() => null);
+    return Object.assign({}, (ult && ult.firmas) || {}, locales);
+  }
+
   function pintarMatricula(enCorreccion) {
     const prev = m || {};
     const subidos = Object.assign({}, prev.subidos || {});
@@ -224,7 +302,7 @@
     const opcionales = fs.filter(f => f.k !== "estudiante" && !f.req);
     let firman = ((prev.acepta && prev.acepta.firman) || []).filter(k => opcionales.some(f => f.k === k));
     const firmaVisible = f => f.k === "estudiante" || f.req || firman.includes(f.k);
-    const firmas = {};
+    const firmas = Object.assign({}, prev.firmas || {});
     const borrador = Object.assign({}, prev, { acuExpedida: prev.acuExpedida || "", acuCorreo: prev.acuCorreo || i.acuCorreo || "", folio: prev.folio || "(se asigna al enviar)", firmas: {} });
     V.innerHTML = cab() + `<div class="card">${etapas(3)}
       ${enCorreccion ? `<div class="aviso aviso-r">El colegio pidió una corrección${a.correccion.motivo ? ": <b>" + esc(a.correccion.motivo) + "</b>" : ""}. Revise, vuelva a firmar y envíe de nuevo.</div>` : ""}
@@ -279,10 +357,12 @@
       <p class="ayuda">Firme con el dedo o el mouse dentro de cada recuadro. Cada firma se pone automáticamente en el contrato, la carta de compromiso y el pagaré, donde corresponda.</p>
       ${fs.map(f => `<div class="firma-caja" data-caja="${f.k}" ${firmaVisible(f) ? "" : "hidden"}><h4>${esc(f.rol)} ${f.req ? '<span class="req">*</span>' : '<small style="color:var(--gris);font-weight:400">(opcional)</small>'}</h4>
         <div class="nota" style="margin:0 0 6px">${esc(f.nombre)} · ${esc(f.doc)}</div>
-        <div class="firma-pad" data-f="${f.k}"><canvas></canvas><button type="button" class="mini-btn borrar">Borrar</button></div></div>`).join("")}
+        <div class="firma-pad" data-f="${f.k}"><canvas></canvas><button type="button" class="mini-btn borrar">Borrar</button></div>
+        ${f.k !== "estudiante" ? `<div style="margin-top:8px"><button type="button" class="mini-btn b-remota" data-k="${f.k}">📲 ¿No está aquí? Enviarle un enlace para firmar desde su celular</button>
+          <div class="nota" data-nota="${f.k}" hidden>Enlace enviado. Cuando firme, toque «Guardar avance y revisar firmas» o vuelva a abrir esta página.</div></div>` : ""}</div>`).join("")}
 
       <div id="merr" class="aviso aviso-r" hidden></div>
-      <div class="acciones"><span></span><button class="btn btn-p" id="b-enviar">Enviar matrícula ✓</button></div></div>`;
+      <div class="acciones"><button type="button" class="btn btn-s" id="b-avance">💾 Guardar avance y revisar firmas</button><button class="btn btn-p" id="b-enviar">Enviar matrícula ✓</button></div></div>`;
     enlazarCab();
 
     const vistaDocs = () => {
@@ -329,33 +409,42 @@
       row.querySelector(".b-ver").onclick = async () => verArchivo(await leerArchivo(k));
     });
 
-    // pads de firma
-    $$(".firma-pad").forEach(pad => {
-      const cv = pad.querySelector("canvas"), k = pad.dataset.f;
-      const g = cv.getContext("2d");
-      // el tamaño se toma cuando el recuadro está visible (los ocultos se ajustan al mostrarse)
-      const ajustar = () => { const r = cv.getBoundingClientRect(); if (!r.width) return; pad._listo = true; cv.width = r.width * 2; cv.height = r.height * 2;
-        g.setTransform(2, 0, 0, 2, 0, 0); g.lineWidth = 2.4; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#111"; };
-      ajustar(); pad._ajustar = ajustar;
-      let dib = false, trazos = 0;
-      const pos = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
-      cv.addEventListener("pointerdown", e => { if (!pad._listo) ajustar(); dib = true; cv.setPointerCapture(e.pointerId); const [x, y] = pos(e); g.beginPath(); g.moveTo(x, y); });
-      cv.addEventListener("pointermove", e => { if (!dib) return; const [x, y] = pos(e); g.lineTo(x, y); g.stroke(); trazos++; });
-      const fin = () => {
-        if (!dib) return; dib = false;
-        if (trazos > 8) {
-          const s = document.createElement("canvas"); s.width = 500; s.height = Math.round(500 * cv.height / cv.width);
-          s.getContext("2d").drawImage(cv, 0, 0, s.width, s.height);
-          const f = fs.find(x => x.k === k);
-          firmas[k] = { img: s.toDataURL("image/png"), nombre: f.nombre, doc: f.doc, fecha: new Date().toISOString() };
-          pad.classList.add("ok"); vistaDocs();
-        }
-      };
-      cv.addEventListener("pointerup", fin); cv.addEventListener("pointerleave", fin);
-      pad.querySelector(".borrar").onclick = () => { g.clearRect(0, 0, cv.width, cv.height); trazos = 0; delete firmas[k]; pad.classList.remove("ok"); vistaDocs(); };
+    // pads de firma (conservan las firmas ya guardadas, también las hechas a distancia)
+    $$(".firma-pad").forEach(pad => armarPad(pad, fs.find(x => x.k === pad.dataset.f), firmas, vistaDocs));
+
+    // ---- guardar avance (para completar después o esperar una firma a distancia) ----
+    const telDe = k => k === "madre" ? (i.madreCel || i.madreTel) : k === "padre" ? (i.padreCel || i.padreTel) : i.acuTel;
+    const linkFirma = k => location.href.split("?")[0] + "?c=" + encodeURIComponent(codigo) + "&d=" + encodeURIComponent(docNum) + "&firma=" + k + DEMO_Q;
+    async function guardarAvance() {
+      vistaDocs();
+      const vis = fs.filter(firmaVisible).map(f => f.k);
+      const todas = await firmasAlDia(borrador.firmas);
+      const fz = Object.fromEntries(Object.entries(todas).filter(([k]) => vis.includes(k)));
+      Object.assign(firmas, fz);
+      await guardarM({ acuExpedida: borrador.acuExpedida, acuCorreo: borrador.acuCorreo, custodia: borrador.custodia, custodiaOtro: borrador.custodiaOtro,
+        autorizaImagen: borrador.autorizaImagen, acepta: { firman: firman.slice() }, firmas: fz });
+    }
+    $("#b-avance").onclick = async () => {
+      const b = $("#b-avance"); b.disabled = true; b.textContent = "Guardando…";
+      try { await guardarAvance(); await recargar(); }
+      catch (e) { console.error(e); alert("No se pudo guardar. Revise su conexión."); b.disabled = false; b.textContent = "💾 Guardar avance y revisar firmas"; }
+    };
+    $$(".b-remota").forEach(b => b.onclick = async () => {
+      const k = b.dataset.k, f = fs.find(x => x.k === k);
+      const antes = b.textContent; b.disabled = true; b.textContent = "Guardando…";
+      try { await guardarAvance(); }
+      catch (e) { console.error(e); alert("No se pudo guardar. Revise su conexión."); b.disabled = false; b.textContent = antes; return; }
+      const txt = `Hola ${f.nombre}. Para completar la matrícula ${C.anio} de ${nombreEst(i)} en el Colegio Gimnasio Real de la Sabana falta su firma.
+
+Abra este enlace, lea los documentos (ya están llenos) y firme desde su celular:
+${linkFirma(k)}`;
+      window.open("https://wa.me/" + telWa(telDe(k)) + "?text=" + encodeURIComponent(txt), "_blank", "noopener");
+      b.disabled = false; b.textContent = "📲 Reenviar enlace"; document.querySelector(`[data-nota="${k}"]`).hidden = false;
     });
 
     $("#b-enviar").onclick = async () => {
+      // trae las firmas hechas a distancia antes de revisar
+      try { Object.assign(firmas, Object.fromEntries(Object.entries(await firmasAlDia({})).filter(([k]) => !firmas[k]))); vistaDocs(); } catch (e) {}
       const err = [];
       if (!$("#m-exp").value.trim()) err.push("lugar de expedición de la cédula del acudiente");
       reqs.forEach(d => { if (!subidos[d.k]) err.push(d.titulo); });
