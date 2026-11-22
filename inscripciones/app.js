@@ -41,7 +41,7 @@
   };
   ["Primero", "Segundo", "Tercero", "Cuarto", "Quinto"].forEach(g => VALORES_BASE[g] = { matricula: 299147, pension: 299147 });
   const MATRICULA_BASE = {
-    abierta: true,
+    abierta: false,                 // se activa en el panel cuando las reglas de Firebase estén publicadas
     valores: VALORES_BASE,          // { grado: { matricula, pension } }
     // [{ nombre, valor, periodicidad, aplica: "todos"|"preescolar"|"primaria"|<grado> }]
     otrosCobros: [{ nombre: "Otros costos educativos: plataforma, guías, libro, ABC, carné, seguro estudiantil y escuela de padres", valor: 570450, periodicidad: "Anual", aplica: "todos" }],
