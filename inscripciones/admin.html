@@ -151,6 +151,13 @@
       <div class="c3"><label class="f">Cargo</label><input name="cargoRector" placeholder="Rector y Representante Legal"></div>
       <div class="c4"><label class="f">Correo del colegio</label><input name="correoCol" type="email"></div>
       <div class="c4"><label class="f">Recargo por mora en pensión (%)</label><input name="moraPct" type="number" min="0" max="50"></div>
+      <div class="c12"><label class="f">Firma escaneada de quien firma por el colegio</label>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div id="firma-prev" style="width:240px;height:90px;border:1.5px dashed var(--linea);border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--gris);font-size:13px"></div>
+          <label class="mini-btn" style="cursor:pointer">📎 Subir firma<input type="file" id="firma-in" accept="image/*" hidden></label>
+          <button type="button" class="mini-btn" id="firma-quitar">Quitar</button>
+        </div>
+        <p class="nota">Una foto o escaneo de la firma en tinta oscura sobre papel blanco. El fondo se quita solo. Aparece en el contrato y el folio <b>únicamente cuando la familia ya firmó</b>.</p></div>
       <div class="c8"><label class="f">Dirección</label><input name="direccionCol"></div>
       <div class="c4"><label class="f">Teléfono</label><input name="telefonoCol"></div>
 
@@ -346,11 +353,17 @@
   }
 
   function cajaMatricula(i) {
-    const m = mats[i.codigo], a = adms[i.codigo], k = calcFactura(i, cfg), ep = estadoPagoMat(m, a), ef = estadoFolio(m, a);
+    const m = mats[i.codigo], a = adms[i.codigo], k = calcFactura(i, cfg, a), ep = estadoPagoMat(m, a), ef = estadoFolio(m, a);
+    const rf = DOCS.responsable(m), ops = DOCS.opcionesResponsable(i);
     const hoy = GRS.hoyISO();
     let h = `<div class="mat-box"><h3>🎓 Matrícula ${C.anio}</h3>`;
     if (!k.listo) h += `<div class="aviso aviso-a" style="margin:6px 0">Falta el valor de matrícula ${C.anio} para ${esc(i.grado)}. Llénelo en ⚙️ Configuración → Matrícula; mientras tanto la familia ve «el colegio está definiendo los valores».</div>`;
-    h += `<div style="font-size:14px">Factura: <b>${esc((m && m.factura && m.factura.numero) || "aún no abierta por la familia")}</b> · Total factura: <b>${pesos(k.total)}</b> (matrícula ${pesos(k.matricula)} + otros cobros + pensión de febrero ${pesos(k.pension)})</div>
+    h += `<div style="font-size:14px">Factura: <b>${esc((m && m.factura && m.factura.numero) || "aún no abierta por la familia")}</b> · Total factura: <b>${pesos(k.total)}</b> (matrícula ${pesos(k.matricula)} + otros cobros${k.febreroAparte ? "" : " + pensión de febrero " + pesos(k.pension)})
+      <br>Responsable financiero: ${rf ? `<b>${esc(rf.nombre)}</b> · C.C. ${esc(rf.cc)} · ${esc(rf.tel || "")}` : "<i>aún no definido (la familia lo elige al abrir la factura)</i>"}
+      ${rf && ef !== "confirmada" ? ` <button type="button" class="mini-btn" id="m-cambiar-resp">Cambiar</button>` : ""}</div>
+      ${ef !== "confirmada" && ep !== "aprobado" ? `<label class="check" style="margin:10px 0 0;background:#fff"><input type="checkbox" id="m-febrero" ${k.febreroAparte ? "checked" : ""}>
+        <span><b>Excepción:</b> la pensión de febrero se paga aparte, en febrero (no va en la factura de matrícula). Solo con autorización de rectoría.</span></label>`
+        : k.febreroAparte ? `<div class="nota" style="margin-top:6px">⚠️ Excepción autorizada: la pensión de febrero se paga aparte, en febrero.</div>` : ""}
       <div class="acciones" style="margin:10px 0 0;justify-content:flex-start">
         <button type="button" class="btn btn-s" id="m-fact">🧾 Ver factura</button>
         <button type="button" class="btn btn-s" id="m-link">🔗 Copiar link de matrícula</button>
@@ -381,12 +394,14 @@
           <div class="c3"><label class="f">Valor recibido *</label><input name="valor" type="number" min="1" required value="${k.total || ""}"></div>
           <div class="c3"><label class="f">Fecha *</label><input name="fecha" type="date" required value="${hoy}" max="${hoy}"></div>
           <div class="c3"><label class="f">Recibió *</label><input name="recibio" required value="${esc(localStorage.getItem("grs_recibio") || "")}"></div>
+          ${rf ? "" : `<div class="c8"><label class="f">Responsable financiero (a su nombre va la factura) *</label><select name="resp" required>${ops.map((o, n) => `<option value="${n}">${esc(o.nombre)} — ${esc(o.rol)}</option>`).join("")}</select></div>
+          <div class="c4"><label class="f">Cédula del responsable *</label><input name="respCC" required inputmode="numeric" value="${esc((ops[0] || {}).cc || "")}"></div>`}
         </div>
         <div class="acciones" style="margin:10px 0 0"><span></span><button class="btn btn-ok">✓ Registrar pago y habilitar el folio</button></div></form>`;
     }
     // ---- folio ----
     if (m && m.enviada) {
-      const fs = DOCS.firmantes(i);
+      const fs = DOCS.firmantes(i, m);
       h += `<div class="pago-box" style="background:#fff;border-color:var(--linea)"><b>📁 Folio de matrícula N.° ${esc(m.folio)}</b> · enviado el ${fecha(m.enviada, true)}
         ${ef === "confirmada" ? `<br><b style="color:var(--ok)">✅ Matrícula confirmada</b> el ${fecha(a.confirmada, true)} · Carné <b>${esc(a.carnet || "")}</b>` : ""}
         ${ef === "correccion" ? `<br><b style="color:var(--rojo)">Corrección solicitada:</b> ${esc(a.correccion.motivo || "")}` : ""}
@@ -422,6 +437,16 @@
       guardarA(i, { pago: { estado: "rechazado", motivo: mo, reporte: m.pagoReportado.enviado, por: usuario, cuando: new Date().toISOString() } })
         .then(() => listo("Pago rechazado")).catch(falla);
     });
+    on("#m-cambiar-resp", () => {
+      if (!confirm("¿Cambiar el responsable financiero? La familia lo volverá a elegir al entrar (o usted al registrar el pago).")) return;
+      guardarMAdm(i, { factura: Object.assign({}, m.factura, { responsable: null }) }).then(() => listo("Responsable financiero borrado")).catch(falla);
+    });
+    const feb = $("#m-febrero");
+    if (feb) feb.onchange = () => {
+      const si = feb.checked;
+      if (!confirm(si ? "¿Autorizar que la pensión de febrero se pague aparte, en febrero? Se quitará de la factura de matrícula." : "¿Volver a incluir la pensión de febrero en la factura de matrícula?")) { feb.checked = !si; return; }
+      guardarA(i, { febreroAparte: si }).then(() => listo(si ? "Excepción autorizada: febrero aparte" : "Febrero vuelve a la factura")).catch(falla);
+    };
     on("#m-desaprobar", () => {
       if (!confirm("¿Revertir la aprobación del pago de matrícula? La familia volverá a ver la factura pendiente.")) return;
       guardarA(i, { pago: null }).then(() => listo("Aprobación revertida")).catch(falla);
@@ -434,11 +459,17 @@
       if (dup && !confirm(`El recibo ${recibo} ya está registrado en otra matrícula (${dup.codigo}). ¿Continuar?`)) return;
       localStorage.setItem("grs_recibio", fe.recibio.value.trim());
       try {
-        // si la familia nunca abrió la factura, se numera ahora
-        if (!m || !m.factura) {
+        // si la familia nunca abrió la factura, se numera ahora y se registra el responsable financiero
+        const factura = Object.assign({}, (m && m.factura) || {});
+        if (!factura.numero) {
           const n = await Store.siguiente("factura" + C.anio);
-          await guardarMAdm(i, { factura: { numero: "FM" + String(C.anio).slice(2) + "-" + String(n).padStart(4, "0"), fecha: new Date().toISOString() } });
+          factura.numero = "FM" + String(C.anio).slice(2) + "-" + String(n).padStart(4, "0"); factura.fecha = new Date().toISOString();
         }
+        if (!factura.responsable && fe.resp) {
+          const o = DOCS.opcionesResponsable(i)[Number(fe.resp.value)];
+          factura.responsable = { k: o.k, nombre: o.nombre, cc: fe.respCC.value.replace(/\D/g, ""), tel: o.tel || "", correo: o.correo || "" };
+        }
+        await guardarMAdm(i, { factura });
         await guardarA(i, { pago: { estado: "aprobado", valor: Number(fe.valor.value), fecha: fe.fecha.value, medio: "Efectivo", recibo, recibio: fe.recibio.value.trim(), por: usuario, cuando: new Date().toISOString() } });
         listo("Pago registrado ✓ — envíe el aviso por WhatsApp para que la familia firme el folio");
       } catch (e) { falla(e); }
@@ -476,14 +507,16 @@
       await guardarA(i, { carnet: id });
     }
     if (!a.carteraAplicada) {
-      const k = calcFactura(i, cfg), pagado = Number(a.pago && a.pago.valor) || 0;
+      const k = calcFactura(i, cfg, a), pagado = Number(a.pago && a.pago.valor) || 0, rf = DOCS.responsable(m) || {};
       const meses = {};
       MESES.forEach((mes, n) => meses[mes] = n === 0
-        ? (pagado >= k.total ? { estado: "pagado", valor: k.pension, nota: "Pagada con la matrícula", fecha: a.pago.fecha } : { estado: "pendiente", nota: "Incluida en la factura de matrícula" })
+        ? (k.febreroAparte ? { estado: "pendiente", nota: "Excepción: se paga aparte en febrero" }
+          : pagado >= k.total ? { estado: "pagado", valor: k.pension, nota: "Pagada con la matrícula", fecha: a.pago.fecha } : { estado: "pendiente", nota: "Incluida en la factura de matrícula" })
         : { estado: "pendiente" });
       await Store.poner("cartera", i.codigo, {
         codigo: i.codigo, anio: A, estudiante: nombreEst(i).toUpperCase(), numDoc: i.numDoc, grado: i.grado,
         acudiente: i.acuNombre || "", acuCC: String(i.acuCC || "").replace(/\D/g, ""), acuTel: i.acuTel || "",
+        responsable: rf.nombre || i.acuNombre || "", responsableCC: rf.cc || String(i.acuCC || "").replace(/\D/g, ""), responsableTel: rf.tel || i.acuTel || "",
         folio: m.folio, carnet: id, factura: (m.factura && m.factura.numero) || "",
         items: k.items, totalFactura: k.total, pagadoFactura: pagado, pension: k.pension, meses, creado: hoy.toISOString()
       });
@@ -507,7 +540,7 @@
   }
   function pintarCartera() {
     const q = $("#cq").value.trim().toLowerCase();
-    const f = cartera.filter(c => !q || [c.estudiante, c.acudiente, c.numDoc, c.acuCC].join(" ").toLowerCase().includes(q))
+    const f = cartera.filter(c => !q || [c.estudiante, c.acudiente, c.responsable, c.numDoc, c.acuCC, c.responsableCC].join(" ").toLowerCase().includes(q))
       .sort((x, y) => (x.acudiente || "").localeCompare(y.acudiente || "") || x.estudiante.localeCompare(y.estudiante));
     let recaudo = 0, pendiente = 0, enMora = 0;
     cartera.forEach(c => {
@@ -519,11 +552,11 @@
       <div class="kpi"><div class="n" style="font-size:20px;color:var(--alerta)">${pesos(pendiente)}</div><div class="l">Pensiones por cobrar</div></div>
       <div class="kpi"><div class="n" style="font-size:20px;color:var(--rojo)">${pesos(enMora)}</div><div class="l">Pensiones vencidas</div></div>`;
     if (!f.length) { $("#t-cartera").innerHTML = `<tbody><tr><td style="text-align:center;color:var(--gris);padding:24px">${cartera.length ? "Sin resultados." : "Aún no hay matrículas confirmadas."}</td></tr></tbody>`; return; }
-    $("#t-cartera").innerHTML = `<thead><tr><th>Estudiante</th><th>Acudiente</th><th>Factura matrícula</th><th>Pensiones</th></tr></thead><tbody>` +
+    $("#t-cartera").innerHTML = `<thead><tr><th>Estudiante</th><th>Responsable financiero</th><th>Factura matrícula</th><th>Pensiones</th></tr></thead><tbody>` +
       f.map(c => {
         const saldo = Math.max(0, (Number(c.totalFactura) || 0) - (Number(c.pagadoFactura) || 0));
         return `<tr><td><b>${esc(c.estudiante)}</b><br><small style="color:var(--gris)">${esc(c.grado)} · Folio ${esc(c.folio)} · ${esc(c.carnet)}</small></td>
-          <td>${esc(c.acudiente)}<br><small style="color:var(--gris)">C.C. ${esc(c.acuCC)} · ${esc(c.acuTel)}</small></td>
+          <td>${esc(c.responsable || c.acudiente)}<br><small style="color:var(--gris)">Responsable financiero · C.C. ${esc(c.responsableCC || c.acuCC)} · ${esc(c.responsableTel || c.acuTel)}</small></td>
           <td>${esc(c.factura)}<br>${saldo ? `<b style="color:var(--rojo)">Saldo ${pesos(saldo)}</b>` : `<b style="color:var(--ok)">Pagada</b>`}</td>
           <td><div class="meses">${MESES.map((mes, n) => { const x = c.meses[mes] || {};
             return `<button type="button" data-c="${esc(c.codigo)}" data-mes="${mes}" class="${x.estado === "pagado" ? "pag" : vencido(n) ? "venc" : ""}" title="${esc(x.estado === "pagado" ? "Pagado " + (x.recibo ? "· recibo " + x.recibo : "") + " " + (x.fecha || "") : x.nota || "Pendiente")}">${mes.slice(0, 3)}</button>`; }).join("")}</div>
@@ -652,6 +685,46 @@
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $$(".modal").forEach(m => m.hidden = true); });
 
+  // ---------- firma escaneada de rectoría ----------
+  let firmaImg = "";
+  function pintarFirma() {
+    $("#firma-prev").innerHTML = firmaImg ? `<img src="${firmaImg}" alt="Firma" style="max-width:100%;max-height:100%">` : "Sin firma";
+    $("#firma-quitar").hidden = !firmaImg;
+  }
+  // Quita el fondo claro, recorta y deja la tinta en PNG transparente (máx. 600×200 px)
+  function firmaLimpia(file) {
+    return new Promise((ok, fail) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const r0 = Math.min(1, 1400 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas"); c.width = Math.round(img.width * r0); c.height = Math.round(img.height * r0);
+        const g = c.getContext("2d"); g.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        const d = g.getImageData(0, 0, c.width, c.height), px = d.data;
+        let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+        for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+          const p = (y * c.width + x) * 4, lum = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
+          if (lum > 165) { px[p + 3] = 0; continue; }
+          px[p] = px[p + 1] = 20; px[p + 2] = 60; px[p + 3] = Math.min(255, Math.round((165 - lum) * 2.2) + 60);
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+        if (x1 < 0) return fail(new Error("No se encontró la firma en la imagen. Use tinta oscura sobre papel blanco."));
+        g.putImageData(d, 0, 0);
+        const w = x1 - x0 + 1, h = y1 - y0 + 1, r = Math.min(600 / w, 200 / h, 1);
+        const o = document.createElement("canvas"); o.width = Math.round(w * r); o.height = Math.round(h * r);
+        o.getContext("2d").drawImage(c, x0, y0, w, h, 0, 0, o.width, o.height);
+        ok(o.toDataURL("image/png"));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); fail(new Error("No se pudo leer la imagen")); };
+      img.src = url;
+    });
+  }
+  $("#firma-in").onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = ""; if (!f) return;
+    try { firmaImg = await firmaLimpia(f); pintarFirma(); toast("Firma lista — recuerde dar Guardar"); }
+    catch (e) { alert(e.message); }
+  };
+  $("#firma-quitar").onclick = () => { firmaImg = ""; pintarFirma(); };
+
   // ---------- configuración ----------
   $("#b-cfg").onclick = () => {
     const f = $("#fcfg");
@@ -684,6 +757,7 @@
     f.razonSocial.value = lg.razonSocial || ""; f.nit.value = lg.nit || ""; f.resolucion.value = lg.resolucion || "";
     f.rector.value = lg.rector || ""; f.cargoRector.value = lg.cargoRector || ""; f.direccionCol.value = lg.direccion || ""; f.telefonoCol.value = lg.telefono || "";
     f.ccRector.value = lg.ccRector || ""; f.correoCol.value = lg.correo || ""; f.moraPct.value = lg.moraPct ?? 10;
+    firmaImg = lg.firmaImg || ""; pintarFirma();
     $("#m-cfg").hidden = false;
   };
   $("#fcfg").onsubmit = async ev => {
@@ -714,7 +788,7 @@
       fechaLimite: f.fechaLimite.value, diaPension: Number(f.diaPension.value) || 0, mediosPago: f.mediosPago.value.trim(),
       legal: { razonSocial: f.razonSocial.value.trim(), nit: f.nit.value.trim(), resolucion: f.resolucion.value.trim(), rector: f.rector.value.trim(),
         cargoRector: f.cargoRector.value.trim() || "Rector", direccion: f.direccionCol.value.trim(), telefono: f.telefonoCol.value.trim(),
-        ccRector: f.ccRector.value.trim(), correo: f.correoCol.value.trim(), moraPct: Number(f.moraPct.value) || 0 }
+        ccRector: f.ccRector.value.trim(), correo: f.correoCol.value.trim(), moraPct: Number(f.moraPct.value) || 0, firmaImg }
     });
     try { await Store.saveConfig(n); cfg = n; pintar(); $("#m-cfg").hidden = true; toast("Configuración guardada"); }
     catch (e) { toast("No se pudo guardar: " + e.message); }

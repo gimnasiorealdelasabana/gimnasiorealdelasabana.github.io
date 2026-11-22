@@ -61,7 +61,8 @@
       resolucion: "Resolución N.° 020309 del 31 de julio de 2026 del MEN",
       rector: "DESIDERIO PERDOMO ÁVILA", ccRector: "3.150.943 de Ricaurte", cargoRector: "Rector y Representante Legal",
       direccion: "Carrera 6 No. 5-05, Centro, Madrid, Cundinamarca", telefono: "300 215 3138", correo: "g.realdelasabana@gmail.com",
-      moraPct: 10 }
+      moraPct: 10,
+      firmaImg: "firma-rector.png" }   // firma escaneada de rectoría (se cambia en el panel)
   };
   CONFIG_BASE.matricula = MATRICULA_BASE;
   const PREESCOLAR = ["Prejardín", "Jardín", "Transición"];
@@ -333,15 +334,17 @@
       !o.aplica || o.aplica === "todos" || o.aplica === grado ||
       (o.aplica === "preescolar" && PREESCOLAR.includes(grado)) || (o.aplica === "primaria" && !PREESCOLAR.includes(grado))));
   }
-  // Factura de matrícula: matrícula + otros cobros + pensión de febrero
-  function calcFactura(i, cfg) {
+  // Factura de matrícula: matrícula + otros cobros + pensión de febrero.
+  // Excepción autorizada por rectoría (a.febreroAparte): la pensión de febrero se paga aparte.
+  function calcFactura(i, cfg, a) {
     const mt = cfg.matricula, v = mt.valores[i.grado] || { matricula: 0, pension: 0 };
     const matricula = Number(v.matricula) || 0, pension = Number(v.pension) || 0;
+    const febreroAparte = !!(a && a.febreroAparte);
     const items = [{ desc: "Matrícula " + C.anio, det: "Grado " + i.grado + " · " + nivelDe(i.grado), valor: matricula }];
     cobrosPara(i.grado, cfg).forEach(o => items.push({ desc: o.nombre, det: o.periodicidad || "", valor: Number(o.valor) || 0 }));
-    if (pension) items.push({ desc: "Pensión de febrero " + C.anio, det: "Se paga junto con la matrícula", valor: pension });
+    if (pension && !febreroAparte) items.push({ desc: "Pensión de febrero " + C.anio, det: "Se paga junto con la matrícula", valor: pension });
     const total = items.reduce((s, x) => s + x.valor, 0);
-    return { items, matricula, pension, total, listo: matricula > 0, fechaLimite: mt.fechaLimite, diaPension: Number(mt.diaPension) || 0 };
+    return { items, matricula, pension, total, febreroAparte, listo: matricula > 0, fechaLimite: mt.fechaLimite, diaPension: Number(mt.diaPension) || 0 };
   }
   // Estado del pago de matrícula según lo reportado por la familia (m) y lo decidido por el colegio (a)
   function estadoPagoMat(m, a) {

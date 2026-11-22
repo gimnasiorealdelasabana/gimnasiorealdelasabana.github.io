@@ -115,19 +115,56 @@
     const ef = estadoFolio(m, a);
     if (ef === "confirmada") return pintarFinal();
     if (ef === "enviada") return pintarEnviada();
-    if (estadoPagoMat(m, a) === "aprobado") return pintarMatricula(ef === "correccion");
-    const k = calcFactura(i, cfg);
-    if (!k.listo || cfg.matricula.abierta === false) {
+    const aprobado = estadoPagoMat(m, a) === "aprobado";
+    const k = calcFactura(i, cfg, a);
+    if (!aprobado && (!k.listo || cfg.matricula.abierta === false)) {
       V.innerHTML = cab() + `<div class="card">${etapas(1)}<div class="aviso aviso-i">📋 <b>¡Cupo guardado!</b> El colegio está terminando de definir los valores de matrícula ${C.anio}. Muy pronto podrá ver aquí su factura; le avisaremos por WhatsApp.</div></div>`;
       return enlazarCab();
     }
-    // La factura se numera la primera vez que la familia la abre (FM27-0001…)
-    if (!m || !m.factura) {
-      const n = await Store.siguiente("factura" + C.anio);
-      const factura = { numero: "FM" + String(C.anio).slice(2) + "-" + String(n).padStart(4, "0"), fecha: new Date().toISOString() };
-      await guardarM({ factura }); m = Object.assign({}, m || {}, { factura });
-    }
+    // Primero se define el responsable financiero: a su nombre va la factura
+    if (!DOCS.responsable(m)) return pintarResponsable(aprobado);
+    if (aprobado) return pintarMatricula(ef === "correccion");
     pintarFactura(k);
+  }
+
+  // ---------- Responsable financiero ----------
+  function pintarResponsable(aprobado) {
+    const ops = DOCS.opcionesResponsable(i);
+    V.innerHTML = cab() + `<div class="card">${etapas(aprobado ? 3 : 1)}
+      <form id="fresp">
+        <h2>¿Quién es el responsable financiero?</h2>
+        <p class="ayuda">A nombre de esta persona se expide la factura de matrícula y las de pensión. Su firma es obligatoria en el contrato y el pagaré.</p>
+        <div class="chips" style="flex-direction:column;align-items:stretch">${ops.map((o, n) => `<label style="border-radius:12px"><input type="radio" name="resp" value="${n}" ${ops.length === 1 ? "checked" : ""}>
+          <span><b>${esc(o.nombre)}</b> — ${esc(o.rol)}${o.cc ? " · C.C. " + esc(o.cc) : ""}</span></label>`).join("")}</div>
+        <div class="grid" style="margin-top:14px">
+          <div class="c4"><label class="f">Cédula del responsable <span class="req">*</span></label><input name="cc" required inputmode="numeric"></div>
+          <div class="c4"><label class="f">Celular <span class="req">*</span></label><input name="tel" required type="tel"></div>
+          <div class="c4"><label class="f">Correo</label><input name="correo" type="email"></div>
+        </div>
+        <div id="rerr" class="aviso aviso-r" hidden style="margin-top:12px"></div>
+        <div class="acciones"><span></span><button class="btn btn-p" id="b-resp">Continuar →</button></div>
+      </form></div>`;
+    enlazarCab();
+    const F = $("#fresp");
+    const llenar = () => { const o = ops[Number((F.querySelector('input[name="resp"]:checked') || {}).value)]; if (!o) return; F.cc.value = o.cc || ""; F.tel.value = o.tel || ""; F.correo.value = o.correo || ""; };
+    $$('#fresp input[name="resp"]').forEach(r => r.onchange = llenar); llenar();
+    F.onsubmit = async ev => {
+      ev.preventDefault();
+      const sel = F.querySelector('input[name="resp"]:checked');
+      if (!sel) { $("#rerr").textContent = "Elija quién es el responsable financiero."; $("#rerr").hidden = false; return; }
+      const o = ops[Number(sel.value)], cc = F.cc.value.replace(/\D/g, "");
+      if (cc.length < 5) { $("#rerr").textContent = "Escriba la cédula del responsable financiero."; $("#rerr").hidden = false; return; }
+      const b = $("#b-resp"); b.disabled = true;
+      try {
+        const factura = Object.assign({}, (m && m.factura) || {}, { responsable: { k: o.k, nombre: o.nombre, cc, tel: F.tel.value.trim(), correo: F.correo.value.trim() } });
+        // La factura se numera la primera vez (FM27-0001…)
+        if (!factura.numero) {
+          const n = await Store.siguiente("factura" + C.anio);
+          factura.numero = "FM" + String(C.anio).slice(2) + "-" + String(n).padStart(4, "0"); factura.fecha = new Date().toISOString();
+        }
+        await guardarM({ factura }); await recargar(); window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (e) { console.error(e); $("#rerr").textContent = "No se pudo guardar. Intente de nuevo."; $("#rerr").hidden = false; b.disabled = false; }
+    };
   }
 
   // ---------- Etapa 2: factura + reporte de pago ----------
@@ -181,7 +218,7 @@
   function pintarMatricula(enCorreccion) {
     const prev = m || {};
     const subidos = Object.assign({}, prev.subidos || {});
-    const reqs = docsRequeridos(), fs = DOCS.firmantes(i);
+    const reqs = docsRequeridos(), fs = DOCS.firmantes(i, prev);
     const firmas = {};
     const borrador = Object.assign({}, prev, { acuExpedida: prev.acuExpedida || "", acuCorreo: prev.acuCorreo || i.acuCorreo || "", folio: prev.folio || "(se asigna al enviar)", firmas: {} });
     V.innerHTML = cab() + `<div class="card">${etapas(3)}
@@ -191,6 +228,7 @@
       <p class="ayuda">N.° de folio: <b>${prev.folio ? esc(prev.folio) : "se asigna automáticamente al enviar"}</b>. Los datos vienen de la inscripción; si algo cambió, avísele a la secretaría.</p>
       <dl class="datos" style="max-width:none">
         <dt>Estudiante</dt><dd>${esc(nombreEst(i))} · ${esc(i.tipoDoc)} ${esc(i.numDoc)}</dd>
+        <dt>Responsable financiero</dt><dd>${esc(DOCS.responsable(prev).nombre)} · C.C. ${esc(DOCS.responsable(prev).cc)}</dd>
         <dt>Grado ${C.anio}</dt><dd>${esc(i.grado)} · ${esc(nivelDe(i.grado))}</dd>
         <dt>Acudiente</dt><dd>${esc(i.acuNombre)} · C.C. ${esc(i.acuCC)} · ${esc(i.acuTel)}</dd>
         <dt>Madre / Padre</dt><dd>${esc([i.madreNombre, i.padreNombre].filter(Boolean).join(" · ") || "—")}</dd>

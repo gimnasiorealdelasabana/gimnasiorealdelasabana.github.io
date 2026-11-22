@@ -22,9 +22,15 @@
     return `<div class="firma-doc">${f && f.img ? `<img src="${esc(f.img)}" alt="Firma">` : `<div style="height:52px"></div>`}
       <div class="linea"><b>${esc(f && f.nombre) || rol}</b><br>${rol}${extra ? "<br>" + extra : ""}${f && f.fecha ? `<br><small>Firmado en línea: ${fecha(f.fecha, true)}</small>` : ""}</div></div>`;
   }
-  function firmaRectoria(cfg) {
+  // La firma escaneada de rectoría se pone sola cuando la familia ya firmó el documento
+  const familiaFirmo = m => !!(m && m.firmas && Object.keys(m.firmas).length);
+  const imgRector = (cfg, m) => {
+    const src = legal(cfg).firmaImg;
+    return src && (/^data:image\/png;base64,/.test(src) || src === "firma-rector.png") && familiaFirmo(m) ? `<img src="${esc(src)}" alt="Firma rectoría">` : `<div style="height:52px"></div>`;
+  };
+  function firmaRectoria(cfg, m) {
     const g = legal(cfg);
-    return firma({ nombre: g.rector || PC }, esc(g.cargoRector || "Rectoría") + " — Gimnasio Real de la Sabana");
+    return `<div class="firma-doc">${imgRector(cfg, m)}<div class="linea"><b>${esc(g.rector || PC)}</b><br>${esc(g.cargoRector || "Rectoría")} — Gimnasio Real de la Sabana</div></div>`;
   }
   // Edad en años cumplidos
   function anios(fn) {
@@ -36,7 +42,19 @@
   }
   // Quién firma: acudiente siempre; madre/padre si son distintos del acudiente;
   // el estudiante solo desde los 7 años y de forma opcional.
-  function firmantes(i) {
+  // Responsable financiero: a su nombre va la factura y su firma es obligatoria.
+  // Se guarda en m.factura.responsable = { k, nombre, cc, tel, correo }.
+  const responsable = m => (m && m.factura && m.factura.responsable) || null;
+  function datosDe(i, k) {
+    if (k === "madre") return { cc: i.madreCC, tel: i.madreCel || i.madreTel, correo: i.madreCorreo };
+    if (k === "padre") return { cc: i.padreCC, tel: i.padreCel || i.padreTel, correo: i.padreCorreo };
+    return { cc: i.acuCC, tel: i.acuTel, correo: i.acuCorreo };
+  }
+  // Personas que pueden ser responsable financiero (padres y acudiente, sin repetir)
+  function opcionesResponsable(i) {
+    return firmantes(i).filter(f => f.k !== "estudiante").map(f => Object.assign({ k: f.k, rol: f.rol, nombre: f.nombre }, datosDe(i, f.k)));
+  }
+  function firmantes(i, m) {
     const r = [];
     if (anios(i.fechaNacimiento) >= 7) r.push({ k: "estudiante", rol: "Estudiante", nombre: nombreEst(i), doc: (i.tipoDoc || "") + " " + (i.numDoc || ""), req: false });
     r.push({ k: "acudiente", rol: "Acudiente (" + (i.acuParentesco || "") + ")", nombre: i.acuNombre, doc: "C.C. " + (i.acuCC || ""), req: true });
@@ -45,12 +63,15 @@
     const mismo = (cc, nom) => (d(cc) && d(cc) === d(i.acuCC)) || (!d(cc) && n(nom) === n(i.acuNombre));
     if (i.madreNombre && !mismo(i.madreCC, i.madreNombre)) r.push({ k: "madre", rol: "Madre", nombre: i.madreNombre, doc: "C.C. " + (i.madreCC || ""), req: false });
     if (i.padreNombre && !mismo(i.padreCC, i.padreNombre)) r.push({ k: "padre", rol: "Padre", nombre: i.padreNombre, doc: "C.C. " + (i.padreCC || ""), req: false });
+    const rf = responsable(m), x = rf && r.find(f => f.k === rf.k);
+    if (x) { x.req = true; x.rol += " · Responsable financiero"; if (rf.cc) x.doc = "C.C. " + rf.cc; }
     return r;
   }
 
   // ---------- FACTURA DE MATRÍCULA (documento de cobro interno) ----------
   function factura(i, cfg, m, a) {
-    const f = (m && m.factura) || {}, k = calcFactura(i, cfg), mt = cfg.matricula;
+    const f = (m && m.factura) || {}, k = calcFactura(i, cfg, a), mt = cfg.matricula;
+    const rf = responsable(m) || Object.assign({ nombre: i.acuNombre }, datosDe(i, "acudiente"));
     const ep = estadoPagoMat(m, a), pagado = ep === "aprobado" ? Number(a.pago.valor) || 0 : 0;
     const estado = ep === "aprobado" ? (pagado >= k.total ? "PAGADA" : "Abono " + pesos(pagado)) : ep === "revision" ? "Pago en revisión" : "Pendiente de pago";
     const mesesRest = GRS.MESES.length - 1;
@@ -61,8 +82,8 @@
         <td><b>Fecha máxima de pago</b>${k.fechaLimite ? fecha(k.fechaLimite) : PC}</td>
         <td><b>Código de inscripción</b>${esc(i.codigo)}</td>
         <td><b>Estado</b>${estado}</td></tr></table>
-      <h3>ADQUIRIENTE</h3>
-      <table><tr><td><b>Nombre</b>${esc(i.acuNombre)}</td><td><b>C.C.</b>${esc(i.acuCC)}</td><td><b>Teléfono</b>${esc(i.acuTel)}</td><td><b>Correo</b>${esc(i.acuCorreo) || "—"}</td></tr>
+      <h3>ADQUIRIENTE — RESPONSABLE FINANCIERO</h3>
+      <table><tr><td><b>Nombre</b>${esc(rf.nombre)}</td><td><b>C.C.</b>${esc(rf.cc)}</td><td><b>Teléfono</b>${esc(rf.tel)}</td><td><b>Correo</b>${esc(rf.correo) || "—"}</td></tr>
         <tr><td colspan="2"><b>Dirección</b>${esc(i.direccion)} · ${esc(i.barrio)}</td><td colspan="2"><b>Estudiante</b>${esc(nombreEst(i))} · ${esc(i.tipoDoc)} ${esc(i.numDoc)}</td></tr></table>
       <h3>DETALLE</h3>
       <table class="fx-items"><tr class="th"><td>Descripción</td><td>Cant.</td><td class="num">Valor unitario</td><td class="num">Total</td></tr>
@@ -72,7 +93,7 @@
         <tr class="tot"><td colspan="3" class="num">TOTAL A PAGAR</td><td class="num">${pesos(k.total)}</td></tr></table>
       <p class="legal">Son: <b>${esc(enLetras(k.total).toLowerCase())}</b> m/cte.</p>
       <h3>PENSIONES ${C.anio}</h3>
-      <p class="legal">Pensión mensual: <b>${k.pension ? pesos(k.pension) : PC}</b>. La pensión de febrero se paga con la matrícula; las de marzo a noviembre (${mesesRest} meses) se pagan ${k.diaPension ? `dentro de los primeros <b>${k.diaPension} días</b> de cada mes` : "en las fechas que indique el colegio"}.</p>
+      <p class="legal">Pensión mensual: <b>${k.pension ? pesos(k.pension) : PC}</b>. ${k.febreroAparte ? `<b>Por autorización de rectoría, la pensión de febrero no se incluye en esta factura</b>: se paga aparte dentro de los primeros ${k.diaPension || 5} días de febrero. Las` : "La pensión de febrero se paga con la matrícula; las"} de marzo a noviembre (${mesesRest} meses) se pagan ${k.diaPension ? `dentro de los primeros <b>${k.diaPension} días</b> de cada mes` : "en las fechas que indique el colegio"}.</p>
       <h3>MEDIOS DE PAGO</h3>
       <p class="legal">${esc(mt.mediosPago || PC)}</p>
       <p class="legal"><i>Documento de cobro interno del Colegio Gimnasio Real de la Sabana. No reemplaza la factura electrónica ante la DIAN.</i></p>
@@ -82,7 +103,7 @@
   // ---------- FOLIO DE MATRÍCULA ----------
   function folio(i, m, a, cfg) {
     const td = (t, v, cs) => `<td${cs ? ` colspan="${cs}"` : ""}><b>${t}</b>${esc(v) || "&nbsp;"}</td>`;
-    const fs = firmantes(i), p = a && a.pago;
+    const fs = firmantes(i, m), p = a && a.pago;
     const conf = a && a.confirmada;
     return `<div class="hoja">
       <div class="enc"><img src="logo.jpeg" alt="">
@@ -110,7 +131,7 @@
       <h3>PAGO DE MATRÍCULA</h3>
       <table><tr>${td("Factura", (m.factura && m.factura.numero) || "")}${td("Valor", p && p.valor ? pesos(p.valor) : "")}${td("Fecha", p && p.fecha)}${td("Estado", p && p.estado === "aprobado" ? "Aprobado" + (p.recibo ? " · Recibo " + p.recibo : "") : "Pendiente")}</tr></table>
       <p class="legal">Con la firma de este folio, el estudiante y su familia formalizan la matrícula ${C.anio} en el Colegio Gimnasio Real de la Sabana, aceptan el Proyecto Educativo Institucional (PEI), el Manual de Convivencia y el sistema de matrícula y pensiones del colegio, y declaran que la información suministrada es veraz. Datos tratados conforme a la Ley 1581 de 2012.</p>
-      <div class="firmas-doc">${fs.map(x => firma((m.firmas || {})[x.k], x.rol, x.doc)).join("")}${firmaRectoria(cfg)}</div>
+      <div class="firmas-doc">${fs.map(x => firma((m.firmas || {})[x.k], x.rol, x.doc)).join("")}${firmaRectoria(cfg, m)}</div>
     </div>`;
   }
 
@@ -125,16 +146,16 @@
   const dosDig = n => String(n).padStart(2, "0");
   const valorLetras = n => `${enLetras(n)} MCTE (${pesos(n)})`;
   // Padres y/o acudientes que intervienen (sin el estudiante)
-  const partes = i => firmantes(i).filter(f => f.k !== "estudiante");
+  const partes = (i, m) => firmantes(i, m).filter(f => f.k !== "estudiante");
   // Fecha de la firma: la del acudiente, o la de envío, o hoy
   function fFirma(m) { const f = (m && m.firmas) || {}; return (f.acudiente && f.acudiente.fecha) || (m && m.enviada) || new Date().toISOString(); }
   function enConstancia(m, lugar) {
     const d = new Date(fFirma(m));
     return `${lugar}, a los ${B(numPal(d.getDate()).toLowerCase() + " (" + d.getDate() + ")")} días del mes de ${B(d.toLocaleDateString("es-CO", { month: "long" }))} de ${B(d.getFullYear())}`;
   }
-  function firmaRector(cfg) {
+  function firmaRector(cfg, m) {
     const g = legal(cfg);
-    return `<div class="firma-doc"><div style="height:52px"></div><div class="linea"><b>${esc(g.rector || PC)}</b><br>C.C. ${esc(g.ccRector || PC)}<br>${esc(g.cargoRector || "Rector")}<br>Colegio Gimnasio Real de la Sabana${g.telefono ? "<br>Cel. " + esc(g.telefono) : ""}${g.correo ? "<br>" + esc(g.correo) : ""}</div></div>`;
+    return `<div class="firma-doc">${imgRector(cfg, m)}<div class="linea"><b>${esc(g.rector || PC)}</b><br>C.C. ${esc(g.ccRector || PC)}<br>${esc(g.cargoRector || "Rector")}<br>Colegio Gimnasio Real de la Sabana${g.telefono ? "<br>Cel. " + esc(g.telefono) : ""}${g.correo ? "<br>" + esc(g.correo) : ""}</div></div>`;
   }
   const firmasDe = (lista, m) => lista.map(x => firma(((m && m.firmas) || {})[x.k], x.rol, x.doc)).join("");
   const nombres = lista => lista.map(p => `${B(p.nombre)}`).join(" y ");
@@ -145,7 +166,7 @@
     const g = legal(cfg), mt = cfg.matricula, k = calcFactura(i, cfg), meses = GRS.MESES.length;
     const dia = Number(mt.diaPension) || 5, mora = Number(g.moraPct) || 10;
     const otros = GRS.cobrosPara(i.grado, cfg), vOtros = otros.reduce((s, o) => s + (Number(o.valor) || 0), 0);
-    const ps = partes(i);
+    const ps = partes(i, m);
     const p = ps.map(x => `${B(x.nombre)}, mayor de edad, identificado(a) con ${esc(x.doc.replace("C.C.", "C.C. Número"))}`).join(" y ");
     const custodia = m.custodia ? (m.custodia === "Otro" ? "Otro: " + (m.custodiaOtro || "") : m.custodia) : "";
     return `<div class="hoja">
@@ -172,13 +193,13 @@
       <p class="legal"><b>TRATAMIENTO DE DATOS PERSONALES.</b> Autorizo con la firma de este documento al Gimnasio Real de la Sabana, de manera expresa y consciente, para que de conformidad con la Ley 1581 de 2012 y sus decretos reglamentarios trate, almacene y transmita nuestros datos personales, incluidos los de mi hijo (a), aquí consignados, en la carta de compromiso y demás documentos y bases de datos, con fines de recolección, análisis de información, sugerencias, desarrollo y ejecución administrativa educativa. Todos los datos se mantendrán protegidos según las políticas y procedimientos establecidos por el Gimnasio Real de la Sabana y se protegerán los datos sensibles de los menores de edad según lo estipulado en el Marco Legal.</p>
       <p class="legal"><b>ACEPTAMOS EL CONTRATO DE MATRÍCULA, EL MANUAL DE CONVIVENCIA, LA CARTA DE COMPROMISO Y DEMÁS LINEAMIENTOS DEL COLEGIO GIMNASIO REAL DE LA SABANA.</b></p>
       <p class="legal">En constancia se firma el presente contrato, una vez leído y aprobado en todas sus partes por quienes en él hemos intervenido, en el Municipio de ${enConstancia(m, "Madrid, Cundinamarca")}.</p>
-      <div class="firmas-doc">${firmasDe(ps, m)}${firmaRector(cfg)}</div>
+      <div class="firmas-doc">${firmasDe(ps, m)}${firmaRector(cfg, m)}</div>
     </div>`;
   }
 
   function carta(i, m, cfg) {
     m = m || {};
-    const ps = partes(i), est = firmantes(i).filter(f => f.k === "estudiante");
+    const ps = partes(i, m), est = firmantes(i, m).filter(f => f.k === "estudiante");
     return `<div class="hoja">
       ${encabezado(cfg, "CARTA DE COMPROMISO FAMILIAR " + C.anio, m.folio ? "Folio de matrícula N.° " + esc(m.folio) : "")}
       <p class="legal">El aceptar la permanencia de su hijo (a) en el Colegio supone asumir el compromiso conjunto de formar personas íntegras, responsables, respetuosas y con capacidades afectivas, espirituales e intelectuales que les permitan ser agentes competentes para la sociedad. Esto solo es posible con el trabajo vinculado de familia y Colegio. Estar en nuestra institución requiere de la aceptación de principios y valores recogidos en el PEI y el Manual de Convivencia, los cuales justifican nuestra tarea educativa, que se logra y fortalece solo con una actitud positiva de las familias, que no descarta el diálogo y la crítica constructiva, pero supone el acuerdo en lo fundamental y el respeto mutuo. Por lo cual es importante aclarar que:</p>
@@ -208,8 +229,8 @@
   function pagare(i, m, cfg) {
     m = m || {};
     const g = legal(cfg), f = m.firmas || {};
-    // Otorgantes: el acudiente y quienes firmen junto con él
-    const ot = partes(i).filter(x => x.k === "acudiente" || f[x.k]);
+    // Otorgantes: el responsable financiero, el acudiente y quienes firmen junto con ellos
+    const ot = partes(i, m).filter(x => x.req || f[x.k]);
     const nit = esc(g.nit || PC);
     return `<div class="hoja">
       ${encabezado(cfg, "PAGARÉ EN BLANCO CON CARTA DE INSTRUCCIONES", "Garantía del contrato de matrícula " + C.anio + (m.folio ? " · Folio N.° " + esc(m.folio) : ""))}
@@ -257,5 +278,5 @@
     });
   }
 
-  window.DOCS = { factura, folio, contrato, carta, pagare, carne, pintarQR, firmantes, anios };
+  window.DOCS = { responsable, opcionesResponsable, factura, folio, contrato, carta, pagare, carne, pintarQR, firmantes, anios };
 })();
