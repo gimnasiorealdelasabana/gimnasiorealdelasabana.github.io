@@ -80,6 +80,7 @@
     <div class="der">
       <button id="b-link">🔗 Copiar link</button>
       <button id="b-wa">📲 Enviar a padres</button>
+      <button id="b-cartera">💰 Cartera <span class="anio"></span></button>
       <button id="b-csv">⬇️ Excel (CSV)</button>
       <button id="b-cfg">⚙️ Configuración</button>
       <button id="b-salir">Salir</button>
@@ -88,6 +89,7 @@
 
   <main class="adm">
     <div class="kpis" id="kpis"></div>
+    <div class="kpis" id="kpis-mat"></div>
 
     <div class="card">
       <h2>Cupos por grado</h2>
@@ -125,19 +127,64 @@
       <div class="c12"><label class="f">Horario de atención</label><input name="horario"></div>
       <div class="sub">Cupos disponibles por grado</div>
       <div class="c12"><div class="grid" id="cfg-cupos"></div></div>
+
+      <div class="sub">🎓 Matrícula <span class="anio"></span></div>
+      <div class="c12"><label class="check" style="margin:0"><input type="checkbox" name="matAbierta"><span><b>Matrícula en línea habilitada</b> — las familias con cupo guardado ven su factura (solo si el grado ya tiene valor de matrícula).</span></label></div>
+      <div class="c12"><p class="nota" style="margin:0">Valores por grado. Mientras un grado tenga matrícula en $0, esas familias verán «el colegio está definiendo los valores».</p>
+        <div style="overflow-x:auto"><table class="t-cfg" id="cfg-valores"></table></div></div>
+      <div class="c12"><label class="f">Otros cobros que se pagan con la matrícula</label>
+        <div style="overflow-x:auto"><table class="t-cfg" id="cfg-otros"></table></div>
+        <button type="button" class="mini-btn" id="b-add-otro" style="margin-top:8px">+ Agregar cobro</button></div>
+      <div class="c6"><label class="f">Fecha máxima para pagar y matricular</label><input name="fechaLimite" type="date"></div>
+      <div class="c6"><label class="f">La pensión se paga dentro de los primeros… días del mes</label><input name="diaPension" type="number" min="0" max="28" placeholder="Ej.: 5"></div>
+      <div class="c12"><label class="f">Medios de pago (aparece en la factura)</label><textarea name="mediosPago"></textarea></div>
+      <div class="c12"><label class="f">Documentos que debe adjuntar la familia</label>
+        <div style="overflow-x:auto"><table class="t-cfg" id="cfg-docs"></table></div>
+        <button type="button" class="mini-btn" id="b-add-doc" style="margin-top:8px">+ Agregar documento</button></div>
+
+      <div class="sub">Datos legales del colegio (factura, folio, contrato)</div>
+      <div class="c8"><label class="f">Razón social</label><input name="razonSocial" placeholder="Como aparece en el RUT"></div>
+      <div class="c4"><label class="f">NIT</label><input name="nit"></div>
+      <div class="c12"><label class="f">Resolución de aprobación</label><input name="resolucion" placeholder="Ej.: Licencia de funcionamiento Resolución N.° … de …"></div>
+      <div class="c8"><label class="f">Nombre de quien firma por el colegio</label><input name="rector"></div>
+      <div class="c4"><label class="f">Cargo</label><input name="cargoRector" placeholder="Rectora"></div>
+      <div class="c8"><label class="f">Dirección</label><input name="direccionCol"></div>
+      <div class="c4"><label class="f">Teléfono</label><input name="telefonoCol"></div>
+
+      <div class="sub">Contrato y pagaré del Gimnasio (opcional)</div>
+      <div class="c12"><p class="nota" style="margin:0 0 6px">Pegue aquí el texto del contrato del Gimnasio. Si lo deja vacío, la matrícula se hace sin contrato. Puede usar estos campos y se llenan solos:
+        <code>{acudiente} {cedula} {expedida} {direccion} {telefono} {correo} {estudiante} {documento} {grado} {nivel} {anio} {matricula} {matricula_letras} {pension} {pension_letras} {total} {total_letras} {folio} {fecha} {rector} {razon_social} {nit}</code>. Deje una línea en blanco entre párrafos.</p>
+        <label class="f">Texto del contrato</label><textarea name="contratoTexto" style="min-height:160px"></textarea></div>
+      <div class="c12"><label class="f">Texto del pagaré y carta de instrucciones</label><textarea name="pagareTexto" style="min-height:120px"></textarea></div>
     </div>
     <div class="acciones"><button type="button" class="btn btn-s" data-cerrar>Cancelar</button><button class="btn btn-a">Guardar</button></div>
   </form>
 </div>
 
+<!-- ============ MODAL CARTERA ============ -->
+<div class="modal" id="m-cartera" hidden>
+  <div class="card" style="max-width:1100px">
+    <div class="modal-cab"><h2>💰 Cartera <span class="anio"></span></h2><button type="button" class="x" data-cerrar>✕</button></div>
+    <p class="ayuda">Estudiantes con matrícula confirmada. Toque un mes pendiente para registrar el pago de la pensión.</p>
+    <div class="filtros"><input id="cq" placeholder="Buscar estudiante, acudiente o documento…"></div>
+    <div id="cartera-res" class="kpis" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div class="tabla-wrap"><table class="t" id="t-cartera"></table></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="docs.js"></script>
 <script>
 (async function () {
-  const { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, nombreEst, estadoReal, telWa, hoja, imprimir, valorPara, TIPOS, fotoSrc } = GRS;
+  const { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, nombreEst, estadoReal, telWa, hoja, imprimir, valorPara, TIPOS, fotoSrc,
+    MESES, calcFactura, estadoPagoMat, estadoFolio, verArchivo, nivelDe, DEMO_Q } = GRS;
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   $$(".anio").forEach(e => e.textContent = C.anio);
   const linkForm = location.href.replace(/admin\.html.*$/, "").replace(/[?#].*$/, "");
+  const linkMat = i => linkForm + "matricula.html?c=" + encodeURIComponent(i.codigo) + "&d=" + encodeURIComponent(i.numDoc) + DEMO_Q;
+  let mats = {}, adms = {};
 
   function toast(t) {
     const d = document.createElement("div"); d.className = "toast"; d.textContent = t;
@@ -167,7 +214,13 @@
 
   async function cargar() {
     try {
-      [lista, cfg] = await Promise.all([Store.listar(), Store.getConfig()]);
+      let ms, as;
+      // (si aún no se han publicado las reglas de matrícula, el panel de inscripciones sigue funcionando)
+      const sinPermiso = e => { console.warn("Matrícula: " + e.message); return []; };
+      [lista, cfg, ms, as] = await Promise.all([Store.listar(), Store.getConfig(),
+        Store.todos("matriculas").catch(sinPermiso), Store.todos("matriculas_admin").catch(sinPermiso)]);
+      mats = {}; ms.forEach(x => mats[x.codigo] = x);
+      adms = {}; as.forEach(x => adms[x.codigo] = x);
       lista.sort((a, b) => b.creado.localeCompare(a.creado));
       pintar();
     } catch (e) { console.error(e); toast("Error cargando datos: " + e.message); }
@@ -192,7 +245,27 @@
       k("guardado", c.guardado, "Cupos guardados", "var(--ok)") +
       k("vencido", c.vencido, "Plazo vencido", "var(--rojo)") +
       `<div class="kpi" style="cursor:default"><div class="n" style="font-size:22px;color:var(--ok)">${pesos(recaudo)}</div><div class="l">Recaudado en efectivo</div></div>`;
-    $$(".kpi[data-k]").forEach(d => d.onclick = () => { filtroKpi = d.dataset.k; $("#f-est").value = filtroKpi; pintarLista(); pintarKpis(); });
+    // Matrícula
+    const cm = { pago: 0, folio: 0, matriculado: 0 };
+    lista.forEach(i => { const e = etapaMat(i); if (e && cm[e.k] !== undefined) cm[e.k]++; });
+    const km = (id, n, l, color) => `<div class="kpi ${filtroKpi === id ? "on" : ""}" data-k="${id}"><div class="n" style="color:${color}">${n}</div><div class="l">${l}</div></div>`;
+    $("#kpis-mat").innerHTML = km("m:pago", cm.pago, "Pagos de matrícula por revisar", "var(--alerta)") +
+      km("m:folio", cm.folio, "Folios por revisar", "var(--alerta)") + km("m:matriculado", cm.matriculado, "Matriculados " + C.anio, "var(--ok)");
+    $$(".kpi[data-k]").forEach(d => d.onclick = () => { filtroKpi = d.dataset.k; $("#f-est").value = filtroKpi.startsWith("m:") ? "" : filtroKpi; pintarLista(); pintarKpis(); });
+  }
+
+  // Etapa de la matrícula de una inscripción con cupo guardado
+  function etapaMat(i) {
+    if (i.estado !== "guardado") return null;
+    const m = mats[i.codigo], a = adms[i.codigo], ef = estadoFolio(m, a), ep = estadoPagoMat(m, a);
+    if (ef === "confirmada") return { k: "matriculado", txt: "Matriculado " + C.anio, cls: "st-ok" };
+    if (ef === "enviada") return { k: "folio", txt: "Folio por revisar", cls: "st-pend" };
+    if (ef === "correccion") return { k: "correccion", txt: "Corrección pedida", cls: "st-venc" };
+    if (ep === "aprobado") return { k: "aprobado", txt: "Pago aprobado · falta folio", cls: "st-lib" };
+    if (ep === "revision") return { k: "pago", txt: "Pago por revisar", cls: "st-pend" };
+    if (ep === "rechazado") return { k: "rechazado", txt: "Pago rechazado", cls: "st-venc" };
+    if (m && m.factura) return { k: "factura", txt: "Factura vista", cls: "st-lib" };
+    return { k: "sin", txt: "Matrícula sin iniciar", cls: "st-lib" };
   }
 
   function pintarCupos() {
@@ -213,7 +286,9 @@
 
   function filtrada() {
     const q = $("#q").value.trim().toLowerCase(), est = $("#f-est").value, gra = $("#f-gra").value;
+    const fm = filtroKpi.startsWith("m:") ? filtroKpi.slice(2) : "";
     return lista.filter(i => {
+      if (fm) { const e = etapaMat(i); if (!e || e.k !== fm) return false; }
       if (est && estadoReal(i) !== est) return false;
       if (!est && i.estado === "anulado") return false;
       if (gra && i.grado !== gra) return false;
@@ -238,9 +313,236 @@
           <td>${esc(i.acuNombre)}<br><small style="color:var(--gris)">${esc(i.acuTel)}</small></td>
           <td>${fecha(i.creado)}</td>
           <td>${i.estado === "pendiente" ? fecha(i.venceEl) : "—"}</td>
-          <td><span class="pill ${st.cls}">${st.txt}</span></td></tr>`;
+          <td><span class="pill ${st.cls}">${st.txt}</span>${(e => e ? `<br><span class="pill ${e.cls}" style="margin-top:4px">${e.txt}</span>` : "")(etapaMat(i))}</td></tr>`;
       }).join("") + "</tbody>";
     $$("#t-ins tr[data-c]").forEach(tr => tr.onclick = () => detalle(tr.dataset.c));
+  }
+
+  // ---------- matrícula: factura, pago, folio, carné y cartera ----------
+  // Lo que decide el colegio va en "matriculas_admin" (la familia no puede escribir ahí)
+  const guardarA = (i, patch) => Store.campos("matriculas_admin", i.codigo, Object.assign({ codigo: i.codigo, anio: C.anio }, patch))
+    .then(() => { adms[i.codigo] = Object.assign({}, adms[i.codigo] || {}, { codigo: i.codigo, anio: C.anio }, patch); });
+  const guardarMAdm = (i, patch) => Store.campos("matriculas", i.codigo, Object.assign({ codigo: i.codigo, numDoc: i.numDoc, anio: C.anio }, patch))
+    .then(() => { mats[i.codigo] = Object.assign({}, mats[i.codigo] || {}, { codigo: i.codigo, numDoc: i.numDoc, anio: C.anio }, patch); });
+
+  // Mensaje de WhatsApp al acudiente según la etapa
+  function avisoWA(i) {
+    const m = mats[i.codigo], a = adms[i.codigo], tel = telWa(i.acuTel);
+    if (!tel) return "";
+    const est = nombreEst(i), L = linkMat(i), ef = estadoFolio(m, a), ep = estadoPagoMat(m, a);
+    let txt = "", lbl = "";
+    if (ef === "confirmada") { lbl = "Enviar carné y confirmación";
+      txt = `Hola ${i.acuNombre}. ¡La matrícula ${C.anio} de ${est} quedó CONFIRMADA! Folio N.° ${m.folio}.\n\nEste es su carné digital ${C.anio}:\n${linkForm}carnet.html?id=${encodeURIComponent(a.carnet || "")}${DEMO_Q}\n\nBienvenidos al Colegio Gimnasio Real de la Sabana.`; }
+    else if (ef === "correccion") { lbl = "Avisar corrección";
+      txt = `Hola ${i.acuNombre}. Revisamos la matrícula ${C.anio} de ${est} (folio ${m.folio}) y necesitamos una corrección: ${a.correccion.motivo || ""}.\n\nIngrese aquí para corregir y enviar de nuevo:\n${L}`; }
+    else if (ef === "enviada") return "";
+    else if (ep === "aprobado") { lbl = "Avisar: pago aprobado, ya puede matricular";
+      txt = `Hola ${i.acuNombre}. Recibimos el pago de matrícula ${C.anio} de ${est} (${pesos(a.pago.valor)}).\n\nYa puede formalizar la matrícula: adjunte los documentos y firme aquí:\n${L}\n\nColegio Gimnasio Real de la Sabana.`; }
+    else if (ep === "rechazado") { lbl = "Avisar: pago no aprobado";
+      txt = `Hola ${i.acuNombre}. No pudimos aprobar el soporte de pago de matrícula de ${est}: ${a.pago.motivo || ""}.\n\nPor favor repórtelo de nuevo aquí:\n${L}`; }
+    else if (ep === "ninguno") { lbl = "Enviar factura de matrícula";
+      txt = `Hola ${i.acuNombre}. El cupo de ${est} para ${i.grado} ${C.anio} en el Colegio Gimnasio Real de la Sabana está guardado. Aquí puede ver la factura de matrícula y luego formalizar la matrícula con documentos y firmas:\n${L}`; }
+    else return "";
+    return `<a class="btn btn-ok" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${encodeURIComponent(txt)}">📲 ${lbl}</a>`;
+  }
+
+  function cajaMatricula(i) {
+    const m = mats[i.codigo], a = adms[i.codigo], k = calcFactura(i, cfg), ep = estadoPagoMat(m, a), ef = estadoFolio(m, a);
+    const hoy = GRS.hoyISO();
+    let h = `<div class="mat-box"><h3>🎓 Matrícula ${C.anio}</h3>`;
+    if (!k.listo) h += `<div class="aviso aviso-a" style="margin:6px 0">Falta el valor de matrícula ${C.anio} para ${esc(i.grado)}. Llénelo en ⚙️ Configuración → Matrícula; mientras tanto la familia ve «el colegio está definiendo los valores».</div>`;
+    h += `<div style="font-size:14px">Factura: <b>${esc((m && m.factura && m.factura.numero) || "aún no abierta por la familia")}</b> · Total factura: <b>${pesos(k.total)}</b> (matrícula ${pesos(k.matricula)} + otros cobros + pensión de febrero ${pesos(k.pension)})</div>
+      <div class="acciones" style="margin:10px 0 0;justify-content:flex-start">
+        <button type="button" class="btn btn-s" id="m-fact">🧾 Ver factura</button>
+        <button type="button" class="btn btn-s" id="m-link">🔗 Copiar link de matrícula</button>
+        ${k.listo ? avisoWA(i) : ""}</div>`;
+    // ---- pago ----
+    if (ep === "aprobado") {
+      const p = a.pago, saldo = Math.max(0, k.total - (Number(p.valor) || 0));
+      h += `<div class="pago-box"><b>✅ Pago de matrícula aprobado:</b> ${pesos(p.valor)} · ${fecha(p.fecha)} · ${esc(p.medio || "")}${p.recibo ? " · Recibo " + esc(p.recibo) : ""}${p.ref ? " · Ref. " + esc(p.ref) : ""}
+        <br><small>Por ${esc(p.por || "")} el ${fecha(p.cuando, true)}</small>
+        ${saldo ? `<br><b style="color:var(--rojo)">Saldo pendiente de la factura: ${pesos(saldo)}</b>` : ""}
+        ${m && m.pagoReportado ? `<div style="margin-top:8px"><button type="button" class="mini-btn" id="m-soporte">📎 Ver soporte enviado</button></div>` : ""}
+        ${ef !== "confirmada" ? `<div class="acciones" style="margin:8px 0 0;justify-content:flex-start"><button type="button" class="btn btn-s" id="m-desaprobar">Revertir aprobación del pago</button></div>` : ""}</div>`;
+    } else {
+      if (ep === "revision" || ep === "rechazado") {
+        const r = m.pagoReportado;
+        h += `<div class="pago-box" style="background:#fff;border-color:var(--linea)"><b>💵 Pago reportado por la familia:</b> ${pesos(r.valor)} · ${fecha(r.fecha)} · ${esc(r.medio)}${r.ref ? " · Ref. " + esc(r.ref) : ""}
+          <br><small>Reportado el ${fecha(r.enviado, true)}</small>
+          ${ep === "rechazado" ? `<br><b style="color:var(--rojo)">✕ Rechazado:</b> ${esc(a.pago.motivo || "")}` : ""}
+          <div class="acciones" style="margin:10px 0 0;justify-content:flex-start">
+            <button type="button" class="btn btn-s" id="m-soporte">📎 Ver soporte</button>
+            ${ep === "revision" ? `<button type="button" class="btn btn-ok" id="m-aprobar">✓ Aprobar pago</button><button type="button" class="btn btn-s" id="m-rechazar" style="color:var(--rojo)">Rechazar</button>` : ""}
+          </div></div>`;
+      }
+      h += `<form class="pago-box" id="m-efectivo">
+        <b>💵 Registrar pago de matrícula en efectivo (secretaría)</b>
+        <div class="grid" style="margin-top:8px">
+          <div class="c3"><label class="f">Recibo No. *</label><input name="recibo" required></div>
+          <div class="c3"><label class="f">Valor recibido *</label><input name="valor" type="number" min="1" required value="${k.total || ""}"></div>
+          <div class="c3"><label class="f">Fecha *</label><input name="fecha" type="date" required value="${hoy}" max="${hoy}"></div>
+          <div class="c3"><label class="f">Recibió *</label><input name="recibio" required value="${esc(localStorage.getItem("grs_recibio") || "")}"></div>
+        </div>
+        <div class="acciones" style="margin:10px 0 0"><span></span><button class="btn btn-ok">✓ Registrar pago y habilitar el folio</button></div></form>`;
+    }
+    // ---- folio ----
+    if (m && m.enviada) {
+      const fs = DOCS.firmantes(i);
+      h += `<div class="pago-box" style="background:#fff;border-color:var(--linea)"><b>📁 Folio de matrícula N.° ${esc(m.folio)}</b> · enviado el ${fecha(m.enviada, true)}
+        ${ef === "confirmada" ? `<br><b style="color:var(--ok)">✅ Matrícula confirmada</b> el ${fecha(a.confirmada, true)} · Carné <b>${esc(a.carnet || "")}</b>` : ""}
+        ${ef === "correccion" ? `<br><b style="color:var(--rojo)">Corrección solicitada:</b> ${esc(a.correccion.motivo || "")}` : ""}
+        <div style="margin-top:8px"><b>Documentos:</b> ${Object.entries(m.docs || {}).map(([dk, d]) => `<button type="button" class="mini-btn" data-doc="${esc(dk)}" style="margin:3px 4px 0 0">${esc(d.titulo)}</button>`).join("") || "—"}</div>
+        <div class="firmas-mini">${fs.map(f => `<div>${(m.firmas || {})[f.k] ? `<img src="${esc(m.firmas[f.k].img)}" alt="">` : "<i>sin firma</i>"}${esc(f.rol)}</div>`).join("")}</div>
+        <div class="acciones" style="margin:8px 0 0;justify-content:flex-start">
+          <button type="button" class="btn btn-s" data-imp="folio">🖨️ Folio</button>
+          ${cfg.matricula.contratoTexto ? `<button type="button" class="btn btn-s" data-imp="contrato">Contrato</button>` : ""}
+          ${cfg.matricula.pagareTexto ? `<button type="button" class="btn btn-s" data-imp="pagare">Pagaré</button>` : ""}
+          ${ef === "enviada" ? `<button type="button" class="btn btn-ok" id="m-confirmar">✓ Confirmar matrícula y generar carné</button><button type="button" class="btn btn-s" id="m-corregir" style="color:var(--rojo)">Pedir corrección</button>` : ""}
+          ${ef === "confirmada" && a.carnet ? `<a class="btn btn-ok" href="carnet.html?id=${encodeURIComponent(a.carnet)}${DEMO_Q}" target="_blank" rel="noopener">🪪 Ver carné</a>` : ""}
+        </div></div>`;
+    } else if (ep === "aprobado") h += `<p class="ayuda" style="margin:10px 0 0">La familia aún no ha enviado el folio (documentos y firmas).</p>`;
+    return h + `</div>`;
+  }
+
+  function enlazarMatricula(i, usuario) {
+    const on = (id, fn) => { const b = $(id); if (b) b.onclick = fn; };
+    const m = mats[i.codigo], a = adms[i.codigo];
+    const listo = msg => { pintar(); detalle(i.codigo); toast(msg); };
+    const falla = e => { console.error(e); toast("No se pudo guardar: " + e.message); };
+    on("#m-fact", () => imprimir(DOCS.factura(i, cfg, m, a)));
+    on("#m-link", async () => { try { await navigator.clipboard.writeText(linkMat(i)); toast("Link copiado"); } catch (e) { prompt("Link de matrícula:", linkMat(i)); } });
+    on("#m-soporte", async () => verArchivo(await Store.doc("matriculas_docs", i.codigo + "_soportePago")));
+    on("#m-aprobar", () => {
+      const r = m.pagoReportado;
+      guardarA(i, { pago: { estado: "aprobado", valor: r.valor, fecha: r.fecha, medio: r.medio, ref: r.ref || "", reporte: r.enviado, por: usuario, cuando: new Date().toISOString() } })
+        .then(() => listo("Pago aprobado ✓ — avísele a la familia con el botón verde de WhatsApp")).catch(falla);
+    });
+    on("#m-rechazar", () => {
+      const mo = prompt("Motivo del rechazo (la familia lo verá):"); if (!mo) return;
+      guardarA(i, { pago: { estado: "rechazado", motivo: mo, reporte: m.pagoReportado.enviado, por: usuario, cuando: new Date().toISOString() } })
+        .then(() => listo("Pago rechazado")).catch(falla);
+    });
+    on("#m-desaprobar", () => {
+      if (!confirm("¿Revertir la aprobación del pago de matrícula? La familia volverá a ver la factura pendiente.")) return;
+      guardarA(i, { pago: null }).then(() => listo("Aprobación revertida")).catch(falla);
+    });
+    const fe = $("#m-efectivo");
+    if (fe) fe.onsubmit = async ev => {
+      ev.preventDefault();
+      const recibo = fe.recibo.value.trim();
+      const dup = Object.values(adms).find(x => x.pago && x.pago.recibo === recibo && x.codigo !== i.codigo);
+      if (dup && !confirm(`El recibo ${recibo} ya está registrado en otra matrícula (${dup.codigo}). ¿Continuar?`)) return;
+      localStorage.setItem("grs_recibio", fe.recibio.value.trim());
+      try {
+        // si la familia nunca abrió la factura, se numera ahora
+        if (!m || !m.factura) {
+          const n = await Store.siguiente("factura" + C.anio);
+          await guardarMAdm(i, { factura: { numero: "FM" + String(C.anio).slice(2) + "-" + String(n).padStart(4, "0"), fecha: new Date().toISOString() } });
+        }
+        await guardarA(i, { pago: { estado: "aprobado", valor: Number(fe.valor.value), fecha: fe.fecha.value, medio: "Efectivo", recibo, recibio: fe.recibio.value.trim(), por: usuario, cuando: new Date().toISOString() } });
+        listo("Pago registrado ✓ — envíe el aviso por WhatsApp para que la familia firme el folio");
+      } catch (e) { falla(e); }
+    };
+    $$("#det [data-doc]").forEach(b => b.onclick = async () => verArchivo(await Store.doc("matriculas_docs", i.codigo + "_" + b.dataset.doc)));
+    $$("#det [data-imp]").forEach(b => b.onclick = () => imprimir(b.dataset.imp === "folio" ? DOCS.folio(i, m, a, cfg) : b.dataset.imp === "contrato" ? DOCS.contrato(i, m, cfg) : DOCS.pagare(i, m, cfg)));
+    on("#m-corregir", () => {
+      const mo = prompt("¿Qué debe corregir la familia? (lo verá al entrar)"); if (!mo) return;
+      guardarA(i, { correccion: { motivo: mo, enviada: m.enviada, por: usuario } }).then(() => listo("Corrección solicitada — avísele por WhatsApp")).catch(falla);
+    });
+    on("#m-confirmar", async () => {
+      if (!fotoSrc(i) && !confirm(`⚠️ ${nombreEst(i)} NO tiene foto: el carné saldrá sin foto. ¿Confirmar de todas formas?`)) return;
+      if (!confirm(`¿Confirmar la matrícula ${C.anio} de ${nombreEst(i)}?\n\nSe generará el carné digital ${C.anio} y se registrará en la cartera ${C.anio}.`)) return;
+      const b = $("#m-confirmar"); b.disabled = true; b.textContent = "Generando…";
+      try { const id = await confirmarMatricula(i, usuario); listo("Matrícula confirmada · carné " + id + " ✓"); }
+      catch (e) { falla(e); b.disabled = false; b.textContent = "✓ Confirmar matrícula y generar carné"; }
+    });
+  }
+
+  // Al confirmar: carné digital (colección carnets) + registro en la cartera del año (colección cartera)
+  async function confirmarMatricula(i, usuario) {
+    const m = mats[i.codigo], a = adms[i.codigo] || {}, A = C.anio, hoy = new Date();
+    let id = a.carnet;
+    if (!id) {
+      const n = await Store.siguiente("carnet" + A);
+      id = "GRS-" + A + "-" + String(n).padStart(4, "0");
+      await Store.poner("carnets", id, {
+        id, anio: A, ano: String(A), vigencia: "DIC-" + A, status: "active",
+        nombres: [i.nombre1, i.nombre2].filter(Boolean).join(" ").toUpperCase(), apellidos: [i.apellido1, i.apellido2].filter(Boolean).join(" ").toUpperCase(),
+        tipodoc: i.tipoDoc || "", numdoc: i.numDoc, grado: String(i.grado).toUpperCase(), nivel: nivelDe(i.grado),
+        rh: i.rh || "", eps: i.eps || "", acudiente: i.acuNombre || "", cel: i.acuTel || "",
+        emergencia: [i.emeNombre, i.emeTel].filter(Boolean).join(" · "), photo: fotoSrc(i),
+        folio: m.folio, inscripcion: i.codigo, creado: hoy.toISOString()
+      });
+      await guardarA(i, { carnet: id });
+    }
+    if (!a.carteraAplicada) {
+      const k = calcFactura(i, cfg), pagado = Number(a.pago && a.pago.valor) || 0;
+      const meses = {};
+      MESES.forEach((mes, n) => meses[mes] = n === 0
+        ? (pagado >= k.total ? { estado: "pagado", valor: k.pension, nota: "Pagada con la matrícula", fecha: a.pago.fecha } : { estado: "pendiente", nota: "Incluida en la factura de matrícula" })
+        : { estado: "pendiente" });
+      await Store.poner("cartera", i.codigo, {
+        codigo: i.codigo, anio: A, estudiante: nombreEst(i).toUpperCase(), numDoc: i.numDoc, grado: i.grado,
+        acudiente: i.acuNombre || "", acuCC: String(i.acuCC || "").replace(/\D/g, ""), acuTel: i.acuTel || "",
+        folio: m.folio, carnet: id, factura: (m.factura && m.factura.numero) || "",
+        items: k.items, totalFactura: k.total, pagadoFactura: pagado, pension: k.pension, meses, creado: hoy.toISOString()
+      });
+    }
+    await guardarA(i, { confirmada: hoy.toISOString(), confirmadaPor: usuario, carteraAplicada: true });
+    return id;
+  }
+
+  // ---------- cartera del año ----------
+  let cartera = [];
+  $("#b-cartera").onclick = async () => {
+    $("#m-cartera").hidden = false;
+    $("#t-cartera").innerHTML = "<tbody><tr><td>Cargando…</td></tr></tbody>";
+    try { cartera = await Store.todos("cartera"); pintarCartera(); }
+    catch (e) { console.error(e); $("#t-cartera").innerHTML = `<tbody><tr><td>No se pudo cargar: ${esc(e.message)}</td></tr></tbody>`; }
+  };
+  $("#cq").addEventListener("input", () => pintarCartera());
+  function vencido(n) {
+    const dia = Number(cfg.matricula.diaPension) || 0;
+    return dia > 0 && new Date() > new Date(C.anio, n + 1, dia, 23, 59);   // n=0 → febrero (mes 1)
+  }
+  function pintarCartera() {
+    const q = $("#cq").value.trim().toLowerCase();
+    const f = cartera.filter(c => !q || [c.estudiante, c.acudiente, c.numDoc, c.acuCC].join(" ").toLowerCase().includes(q))
+      .sort((x, y) => (x.acudiente || "").localeCompare(y.acudiente || "") || x.estudiante.localeCompare(y.estudiante));
+    let recaudo = 0, pendiente = 0, enMora = 0;
+    cartera.forEach(c => {
+      recaudo += Number(c.pagadoFactura) || 0;
+      MESES.forEach((mes, n) => { const x = c.meses[mes] || {}; if (n === 0) return;
+        if (x.estado === "pagado") recaudo += Number(x.valor) || 0; else { pendiente += Number(c.pension) || 0; if (vencido(n)) enMora += Number(c.pension) || 0; } });
+    });
+    $("#cartera-res").innerHTML = `<div class="kpi"><div class="n" style="font-size:20px;color:var(--ok)">${pesos(recaudo)}</div><div class="l">Recaudado (matrícula y pensiones)</div></div>
+      <div class="kpi"><div class="n" style="font-size:20px;color:var(--alerta)">${pesos(pendiente)}</div><div class="l">Pensiones por cobrar</div></div>
+      <div class="kpi"><div class="n" style="font-size:20px;color:var(--rojo)">${pesos(enMora)}</div><div class="l">Pensiones vencidas</div></div>`;
+    if (!f.length) { $("#t-cartera").innerHTML = `<tbody><tr><td style="text-align:center;color:var(--gris);padding:24px">${cartera.length ? "Sin resultados." : "Aún no hay matrículas confirmadas."}</td></tr></tbody>`; return; }
+    $("#t-cartera").innerHTML = `<thead><tr><th>Estudiante</th><th>Acudiente</th><th>Factura matrícula</th><th>Pensiones</th></tr></thead><tbody>` +
+      f.map(c => {
+        const saldo = Math.max(0, (Number(c.totalFactura) || 0) - (Number(c.pagadoFactura) || 0));
+        return `<tr><td><b>${esc(c.estudiante)}</b><br><small style="color:var(--gris)">${esc(c.grado)} · Folio ${esc(c.folio)} · ${esc(c.carnet)}</small></td>
+          <td>${esc(c.acudiente)}<br><small style="color:var(--gris)">C.C. ${esc(c.acuCC)} · ${esc(c.acuTel)}</small></td>
+          <td>${esc(c.factura)}<br>${saldo ? `<b style="color:var(--rojo)">Saldo ${pesos(saldo)}</b>` : `<b style="color:var(--ok)">Pagada</b>`}</td>
+          <td><div class="meses">${MESES.map((mes, n) => { const x = c.meses[mes] || {};
+            return `<button type="button" data-c="${esc(c.codigo)}" data-mes="${mes}" class="${x.estado === "pagado" ? "pag" : vencido(n) ? "venc" : ""}" title="${esc(x.estado === "pagado" ? "Pagado " + (x.recibo ? "· recibo " + x.recibo : "") + " " + (x.fecha || "") : x.nota || "Pendiente")}">${mes.slice(0, 3)}</button>`; }).join("")}</div>
+            <small style="color:var(--gris)">${pesos(c.pension)} / mes</small></td></tr>`;
+      }).join("") + "</tbody>";
+    $$("#t-cartera [data-mes]").forEach(b => b.onclick = () => pagoMes(b.dataset.c, b.dataset.mes));
+  }
+  async function pagoMes(codigo, mes) {
+    const c = cartera.find(x => x.codigo === codigo), x = c.meses[mes] || {};
+    if (x.estado === "pagado") {
+      if (!confirm(`Pensión de ${mes} de ${c.estudiante}: PAGADA${x.recibo ? " (recibo " + x.recibo + ")" : ""} el ${x.fecha || ""}.\n\n¿Anular este pago?`)) return;
+      c.meses[mes] = { estado: "pendiente", nota: "Pago anulado por " + Store.usuario() };
+    } else {
+      const recibo = prompt(`Registrar pago de la pensión de ${mes} de ${c.estudiante} (${pesos(c.pension)}).\n\nN.° de recibo:`); if (!recibo) return;
+      const valor = Number(prompt("Valor recibido:", c.pension)); if (!valor) return;
+      c.meses[mes] = { estado: "pagado", valor, recibo, fecha: GRS.hoyISO(), por: Store.usuario() };
+    }
+    try { await Store.campos("cartera", codigo, { meses: c.meses }); pintarCartera(); toast("Cartera actualizada ✓"); }
+    catch (e) { console.error(e); toast("No se pudo guardar: " + e.message); }
   }
 
   // ---------- detalle ----------
@@ -276,11 +578,12 @@
       ${est === "vencido" ? `<div class="aviso aviso-r">El plazo de pago venció el ${fecha(i.venceEl)}. Puede ampliar el plazo, registrar el pago o liberar el cupo.</div>` : ""}
       ${i.listaEspera && i.estado !== "guardado" ? `<div class="aviso aviso-a">Se inscribió cuando el grado estaba lleno (lista de espera).</div>` : ""}
       ${acciones}
+      ${i.estado === "guardado" ? cajaMatricula(i) : ""}
       <div class="acciones" style="margin:0 0 14px;justify-content:flex-start">
         <button class="btn btn-a" id="d-imp">🖨️ Imprimir formulario</button>
         ${waAcu ? `<a class="btn btn-ok" target="_blank" rel="noopener" href="https://wa.me/${waAcu}?text=${encodeURIComponent(msgRec)}">📲 ${est === "guardado" ? "Confirmar" : "Recordar pago"} por WhatsApp</a>` : ""}
         ${i.estado === "pendiente" ? `<button class="btn btn-s" id="d-ampliar">⏱️ Ampliar plazo</button><button class="btn btn-s" id="d-liberar">Liberar cupo</button>` : ""}
-        ${i.estado === "guardado" ? `<button class="btn btn-s" id="d-revertir">Revertir pago</button>` : ""}
+        ${i.estado === "guardado" && !mats[i.codigo] && !adms[i.codigo] ? `<button class="btn btn-s" id="d-revertir">Revertir pago</button>` : ""}
         ${i.estado === "liberado" || i.estado === "anulado" ? `<button class="btn btn-s" id="d-reactivar">Reactivar inscripción</button>` : ""}
         ${i.estado !== "anulado" && i.estado !== "guardado" ? `<button class="btn btn-s" id="d-anular" style="color:var(--rojo)">Anular</button>` : ""}
       </div>
@@ -306,7 +609,7 @@
         ${d("Plazo de pago", fecha(i.venceEl))}${d("Última modificación", i.modificado ? fecha(i.modificado, true) + (i.nota ? " — " + i.nota : "") : "")}
       </div>`;
     $("#m-det").hidden = false;
-    const usuario = sessionStorage.getItem("grs" + C.anio + "_admin") || (window.firebase && firebase.auth().currentUser?.email) || "admin";
+    const usuario = Store.usuario();
 
     async function cambiar(patch, msg) {
       try {
@@ -317,6 +620,7 @@
       } catch (e) { console.error(e); toast("No se pudo guardar: " + e.message); }
     }
     $("#d-imp").onclick = () => imprimir(hoja(i));
+    if (i.estado === "guardado") enlazarMatricula(i, usuario);
     const fp = $("#fpago");
     if (fp) fp.onsubmit = ev => {
       ev.preventDefault();
@@ -354,6 +658,32 @@
     f.abierto.checked = cfg.abierto;
     ["valorNuevo", "valorContinuidad", "diasPlazo", "fechaCierre", "whatsappSecretaria", "lugarPago", "horario"].forEach(k => f[k].value = cfg[k] ?? "");
     $("#cfg-cupos").innerHTML = GRADOS.map(g => `<div class="c4"><label class="f">${g}</label><input type="number" min="0" data-g="${g}" value="${cfg.cupos[g] || 0}"></div>`).join("");
+    // matrícula
+    const mt = cfg.matricula, lg = mt.legal;
+    f.matAbierta.checked = mt.abierta !== false;
+    $("#cfg-valores").innerHTML = `<tr><th>Grado</th><th>Matrícula</th><th>Pensión mensual</th></tr>` + GRADOS.map(g => `<tr><td><b>${g}</b></td>
+      <td><input type="number" min="0" step="1000" data-vg="${g}" data-vk="matricula" value="${mt.valores[g].matricula || 0}"></td>
+      <td><input type="number" min="0" step="1000" data-vg="${g}" data-vk="pension" value="${mt.valores[g].pension || 0}"></td></tr>`).join("");
+    const opAplica = v => [["todos", "Todos los grados"], ["preescolar", "Solo preescolar"], ["primaria", "Solo primaria"]].concat(GRADOS.map(g => [g, "Solo " + g]))
+      .map(([k, t]) => `<option value="${k}" ${v === k ? "selected" : ""}>${t}</option>`).join("");
+    const opPer = v => ["Anual", "Semestral", "Única vez", "Mensual"].map(p => `<option ${v === p ? "selected" : ""}>${p}</option>`).join("");
+    const filaOtro = o => `<tr data-otro><td><input data-ok="nombre" value="${esc(o.nombre || "")}" placeholder="Ej.: Seguro estudiantil"></td>
+      <td><input data-ok="valor" type="number" min="0" step="1000" value="${o.valor || 0}" style="width:120px"></td>
+      <td><select data-ok="periodicidad">${opPer(o.periodicidad)}</select></td>
+      <td><select data-ok="aplica">${opAplica(o.aplica || "todos")}</select></td>
+      <td><button type="button" class="mini-btn" data-del>🗑</button></td></tr>`;
+    $("#cfg-otros").innerHTML = `<tr><th>Cobro</th><th>Valor</th><th>Periodicidad</th><th>Aplica a</th><th></th></tr>` + (mt.otrosCobros || []).map(filaOtro).join("");
+    $("#b-add-otro").onclick = () => $("#cfg-otros").insertAdjacentHTML("beforeend", filaOtro({}));
+    const filaDoc = d => `<tr data-docr><td><input data-dk="titulo" value="${esc(d.titulo || "")}" placeholder="Ej.: Registro civil"></td>
+      <td><select data-dk="para"><option value="todos">Todos</option><option value="nuevo" ${d.para === "nuevo" ? "selected" : ""}>Solo estudiantes nuevos</option><option value="continuidad" ${d.para === "continuidad" ? "selected" : ""}>Solo continuidad</option></select></td>
+      <td><button type="button" class="mini-btn" data-del>🗑</button></td></tr>`;
+    $("#cfg-docs").innerHTML = `<tr><th>Documento</th><th>Lo entregan</th><th></th></tr>` + (mt.documentos || []).map(filaDoc).join("");
+    $("#b-add-doc").onclick = () => $("#cfg-docs").insertAdjacentHTML("beforeend", filaDoc({ para: "todos" }));
+    [$("#cfg-otros"), $("#cfg-docs")].forEach(t => t.onclick = e => { if (e.target.matches("[data-del]")) e.target.closest("tr").remove(); });
+    f.fechaLimite.value = mt.fechaLimite || ""; f.diaPension.value = mt.diaPension || ""; f.mediosPago.value = mt.mediosPago || "";
+    f.razonSocial.value = lg.razonSocial || ""; f.nit.value = lg.nit || ""; f.resolucion.value = lg.resolucion || "";
+    f.rector.value = lg.rector || ""; f.cargoRector.value = lg.cargoRector || ""; f.direccionCol.value = lg.direccion || ""; f.telefonoCol.value = lg.telefono || "";
+    f.contratoTexto.value = mt.contratoTexto || ""; f.pagareTexto.value = mt.pagareTexto || "";
     $("#m-cfg").hidden = false;
   };
   $("#fcfg").onsubmit = async ev => {
@@ -371,6 +701,21 @@
       cupos: {}
     });
     $$("#cfg-cupos input").forEach(i => n.cupos[i.dataset.g] = Number(i.value) || 0);
+    const valores = {};
+    GRADOS.forEach(g => valores[g] = { matricula: 0, pension: 0 });
+    $$("#cfg-valores [data-vg]").forEach(x => valores[x.dataset.vg][x.dataset.vk] = Number(x.value) || 0);
+    const otrosCobros = $$("#cfg-otros tr[data-otro]").map(tr => {
+      const o = {}; tr.querySelectorAll("[data-ok]").forEach(x => o[x.dataset.ok] = x.dataset.ok === "valor" ? Number(x.value) || 0 : x.value.trim()); return o;
+    }).filter(o => o.nombre && o.valor > 0);
+    const documentos = $$("#cfg-docs tr[data-docr]").map(tr => ({ titulo: tr.querySelector("[data-dk=titulo]").value.trim(), para: tr.querySelector("[data-dk=para]").value }))
+      .filter(d => d.titulo);
+    n.matricula = Object.assign({}, cfg.matricula, {
+      abierta: f.matAbierta.checked, valores, otrosCobros, documentos,
+      fechaLimite: f.fechaLimite.value, diaPension: Number(f.diaPension.value) || 0, mediosPago: f.mediosPago.value.trim(),
+      legal: { razonSocial: f.razonSocial.value.trim(), nit: f.nit.value.trim(), resolucion: f.resolucion.value.trim(), rector: f.rector.value.trim(),
+        cargoRector: f.cargoRector.value.trim() || "Rectoría", direccion: f.direccionCol.value.trim(), telefono: f.telefonoCol.value.trim() },
+      contratoTexto: f.contratoTexto.value.trim(), pagareTexto: f.pagareTexto.value.trim()
+    });
     try { await Store.saveConfig(n); cfg = n; pintar(); $("#m-cfg").hidden = true; toast("Configuración guardada"); }
     catch (e) { toast("No se pudo guardar: " + e.message); }
   };

@@ -29,3 +29,8 @@ window.GRS_CONFIG = {
   // al panel es con correo y contraseña de Firebase Authentication.
   pinDemo: "2027"
 };
+
+// Abrir cualquier página con ?demo en la dirección para probar sin tocar la base real
+// (los datos quedan solo en ese navegador; PIN del panel: el de arriba).
+window.GRS_DEMO = /[?&]demo\b/.test(location.search);
+if (window.GRS_DEMO) window.GRS_CONFIG.firebase = null;

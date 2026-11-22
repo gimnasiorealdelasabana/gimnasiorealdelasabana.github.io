@@ -239,7 +239,7 @@
   </div>
 </div>
 
-<footer class="pie">Colegio Gimnasio Real de la Sabana · Madrid, Cundinamarca<br>Sus datos están protegidos conforme a la Ley 1581 de 2012.<br><a href="admin.html" style="color:var(--gris);font-size:12px">Acceso colegio</a></footer>
+<footer class="pie">Colegio Gimnasio Real de la Sabana · Madrid, Cundinamarca<br>Sus datos están protegidos conforme a la Ley 1581 de 2012.<br><a href="admin.html" id="a-admin" style="color:var(--gris);font-size:12px">Acceso colegio</a></footer>
 
 <script src="config.js"></script>
 <script src="app.js"></script>
@@ -248,6 +248,7 @@
   const { C, GRADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, ESTADOS, telWa, hoja, imprimir, valorPara, fotoReducida, fotoSrc } = GRS;
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   document.querySelectorAll("#anio, .anio").forEach(e => e.textContent = C.anio);
+  if (window.GRS_DEMO) $("#a-admin").href = "admin.html?demo";
   document.querySelectorAll(".anio-ant").forEach(e => e.textContent = C.anio - 1);
 
   // ----- pestañas -----
@@ -479,6 +480,7 @@
       </dl>
       ${msg}
       <div class="acciones" style="justify-content:center">
+        ${est === "guardado" && cfg.matricula.abierta !== false && GRS.calcFactura(i, cfg).listo ? `<a class="btn btn-p" href="matricula.html?c=${encodeURIComponent(i.codigo)}&d=${encodeURIComponent(i.numDoc)}${GRS.DEMO_Q}">🎓 Ver factura y matricular</a>` : ""}
         <button class="btn btn-a" id="b-imp">🖨️ Imprimir / guardar PDF</button>
         ${wa}
         ${nuevo ? `<button class="btn btn-s" onclick="location.reload()">Inscribir otro hijo(a)</button>` : ""}

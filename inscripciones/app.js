@@ -26,8 +26,38 @@
     lugarPago: "Secretaría del colegio",
     cupos: { "Prejardín": 15, "Jardín": 20, "Transición": 20,
       "Primero": 25, "Segundo": 25, "Tercero": 25, "Cuarto": 25, "Quinto": 25 },
-    ocupados: {}
+    ocupados: {},
+    matricula: null   // se completa abajo (MATRICULA_BASE)
   };
+
+  // ---------- Matrícula 2027: todo editable en el panel → Configuración → Matrícula ----------
+  // Los valores arrancan en 0 / vacíos: el colegio los llena cuando los tenga.
+  const MESES = ["Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre"];
+  const VALORES_BASE = {};
+  GRADOS.forEach(g => VALORES_BASE[g] = { matricula: 0, pension: 0 });
+  const MATRICULA_BASE = {
+    abierta: true,
+    valores: VALORES_BASE,          // { grado: { matricula, pension } }
+    otrosCobros: [],                // [{ nombre, valor, periodicidad, aplica: "todos"|"preescolar"|"primaria"|<grado> }]
+    fechaLimite: "",                // fecha máxima para pagar y matricular
+    mediosPago: "Efectivo en la secretaría del colegio.",
+    diaPension: 0,                  // la pensión se paga dentro de los primeros N días de cada mes
+    // Lista sugerida, se edita en el panel
+    documentos: [
+      { titulo: "Registro civil de nacimiento del estudiante", para: "todos" },
+      { titulo: "Documento de identidad del acudiente", para: "todos" },
+      { titulo: "Certificado de afiliación a EPS", para: "todos" },
+      { titulo: "Carné de vacunas", para: "todos" },
+      { titulo: "Certificado del grado anterior", para: "nuevo" }
+    ],
+    contratoTexto: "",              // texto del contrato del Gimnasio (lo pega el colegio)
+    pagareTexto: "",                // texto del pagaré y carta de instrucciones (opcional)
+    legal: { razonSocial: "", nit: "", resolucion: "", rector: "", cargoRector: "Rectoría",
+      direccion: "Carrera 6 No. 5-05, Centro, Madrid, Cundinamarca", telefono: "" }
+  };
+  CONFIG_BASE.matricula = MATRICULA_BASE;
+  const PREESCOLAR = ["Prejardín", "Jardín", "Transición"];
+  function nivelDe(g) { return PREESCOLAR.includes(g) ? "Preescolar" : "Básica Primaria"; }
 
   // ---------- utilidades ----------
   const ALFA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -113,11 +143,25 @@
 
   // ---------- almacenamiento ----------
   let fs = null, auth = null;
-  const LK = "grs" + C.anio + "_";
+  const LK = "grs" + C.anio + "_" + (window.GRS_DEMO ? "demo_" : "");
   const local = {
     all() { try { return JSON.parse(localStorage.getItem(LK + "insc") || "{}"); } catch (e) { return {}; } },
     put(map) { localStorage.setItem(LK + "insc", JSON.stringify(map)); }
   };
+  // Modo demo: cada colección es un objeto { id: datos } en el navegador
+  const coleccion = {
+    all(c) { try { return JSON.parse(localStorage.getItem(LK + "col_" + c) || "{}"); } catch (e) { return {}; } },
+    put(c, m) {
+      try { localStorage.setItem(LK + "col_" + c, JSON.stringify(m)); }
+      catch (e) { throw new Error("El navegador se quedó sin espacio para la prueba (modo demo). Use archivos más livianos."); }
+    }
+  };
+  // Firestore no acepta "undefined"
+  function limpio(o) {
+    const r = {};
+    Object.entries(o).forEach(([k, v]) => { if (v !== undefined) r[k] = v; });
+    return r;
+  }
 
   const Store = {
     modo: "local",
@@ -146,7 +190,51 @@
       const r = Object.assign({}, CONFIG_BASE, c);
       r.cupos = Object.assign({}, CONFIG_BASE.cupos, c.cupos || {});
       r.ocupados = Object.assign({}, c.ocupados || {});
+      const m = c.matricula || {};
+      r.matricula = Object.assign({}, MATRICULA_BASE, m);
+      r.matricula.valores = {};
+      GRADOS.forEach(g => r.matricula.valores[g] = Object.assign({}, VALORES_BASE[g], (m.valores || {})[g] || {}));
+      r.matricula.legal = Object.assign({}, MATRICULA_BASE.legal, m.legal || {});
+      r.matricula.otrosCobros = Array.isArray(m.otrosCobros) ? m.otrosCobros : [];
+      r.matricula.documentos = Array.isArray(m.documentos) ? m.documentos : MATRICULA_BASE.documentos;
       return r;
+    },
+
+    // ---- documentos genéricos (matrícula, soportes, carnés, cartera) ----
+    // Cada colección vive aparte para no inflar la inscripción (límite 1 MB por documento).
+    async doc(col, id) {
+      if (fs) { const d = await fs.collection(col).doc(id).get(); return d.exists ? d.data() : null; }
+      return coleccion.all(col)[id] || null;
+    },
+    async poner(col, id, data) {
+      data = limpio(data);
+      if (fs) return fs.collection(col).doc(id).set(data);
+      const m = coleccion.all(col); m[id] = data; coleccion.put(col, m);
+    },
+    // Reemplaza solo los campos de primer nivel que se envían (los demás se conservan)
+    async campos(col, id, patch) {
+      patch = limpio(patch);
+      if (fs) return fs.collection(col).doc(id).set(patch, { mergeFields: Object.keys(patch) });
+      const m = coleccion.all(col); m[id] = Object.assign(m[id] || {}, patch);
+      Object.keys(patch).forEach(k => { if (patch[k] === null) delete m[id][k]; });
+      coleccion.put(col, m);
+    },
+    async todos(col) {
+      if (fs) { const q = await fs.collection(col).where("anio", "==", C.anio).get(); return q.docs.map(d => d.data()); }
+      return Object.values(coleccion.all(col));
+    },
+    // Consecutivo seguro (factura, folio, carné): devuelve el siguiente número
+    async siguiente(nombre) {
+      if (fs) {
+        const ref = fs.collection("contadores").doc(nombre);
+        return fs.runTransaction(async t => {
+          const d = await t.get(ref), n = (d.exists ? Number(d.data().n) || 0 : 0) + 1;
+          t.set(ref, { n });
+          return n;
+        });
+      }
+      const m = coleccion.all("contadores"), n = ((m[nombre] && m[nombre].n) || 0) + 1;
+      m[nombre] = { n }; coleccion.put("contadores", m); return n;
     },
 
     async saveConfig(cfg) {
@@ -224,8 +312,106 @@
     async logout() {
       if (auth) await auth.signOut();
       sessionStorage.removeItem(LK + "admin");
+    },
+    usuario() {
+      return (auth && auth.currentUser && auth.currentUser.email) || sessionStorage.getItem(LK + "admin") || "admin";
     }
   };
+
+  // ---------- matrícula: factura, pagos, archivos ----------
+  // Otros cobros que aplican a un grado
+  function cobrosPara(grado, cfg) {
+    return (cfg.matricula.otrosCobros || []).filter(o => Number(o.valor) > 0 && (
+      !o.aplica || o.aplica === "todos" || o.aplica === grado ||
+      (o.aplica === "preescolar" && PREESCOLAR.includes(grado)) || (o.aplica === "primaria" && !PREESCOLAR.includes(grado))));
+  }
+  // Factura de matrícula: matrícula + otros cobros + pensión de febrero
+  function calcFactura(i, cfg) {
+    const mt = cfg.matricula, v = mt.valores[i.grado] || { matricula: 0, pension: 0 };
+    const matricula = Number(v.matricula) || 0, pension = Number(v.pension) || 0;
+    const items = [{ desc: "Matrícula " + C.anio, det: "Grado " + i.grado + " · " + nivelDe(i.grado), valor: matricula }];
+    cobrosPara(i.grado, cfg).forEach(o => items.push({ desc: o.nombre, det: o.periodicidad || "", valor: Number(o.valor) || 0 }));
+    if (pension) items.push({ desc: "Pensión de febrero " + C.anio, det: "Se paga junto con la matrícula", valor: pension });
+    const total = items.reduce((s, x) => s + x.valor, 0);
+    return { items, matricula, pension, total, listo: matricula > 0, fechaLimite: mt.fechaLimite, diaPension: Number(mt.diaPension) || 0 };
+  }
+  // Estado del pago de matrícula según lo reportado por la familia (m) y lo decidido por el colegio (a)
+  function estadoPagoMat(m, a) {
+    const p = a && a.pago, r = m && m.pagoReportado;
+    if (p && p.estado === "aprobado") return "aprobado";
+    if (r) return p && p.estado === "rechazado" && p.reporte === r.enviado ? "rechazado" : "revision";
+    return "ninguno";
+  }
+  // Estado del folio de matrícula
+  function estadoFolio(m, a) {
+    if (a && a.confirmada) return "confirmada";
+    if (!m || !m.enviada) return "pendiente";
+    if (a && a.correccion && a.correccion.enviada === m.enviada) return "correccion";
+    return "enviada";
+  }
+  // Número a letras (pesos colombianos)
+  function enLetras(n) {
+    n = Math.round(Number(n) || 0);
+    if (n === 0) return "CERO PESOS";
+    const U = ["", "UNO", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE", "DIEZ", "ONCE", "DOCE", "TRECE", "CATORCE", "QUINCE", "DIECISÉIS", "DIECISIETE", "DIECIOCHO", "DIECINUEVE", "VEINTE", "VEINTIUNO", "VEINTIDÓS", "VEINTITRÉS", "VEINTICUATRO", "VEINTICINCO", "VEINTISÉIS", "VEINTISIETE", "VEINTIOCHO", "VEINTINUEVE"];
+    const D = ["", "", "", "TREINTA", "CUARENTA", "CINCUENTA", "SESENTA", "SETENTA", "OCHENTA", "NOVENTA"];
+    const CEN = ["", "CIENTO", "DOSCIENTOS", "TRESCIENTOS", "CUATROCIENTOS", "QUINIENTOS", "SEISCIENTOS", "SETECIENTOS", "OCHOCIENTOS", "NOVECIENTOS"];
+    const tres = x => {
+      if (x === 100) return "CIEN";
+      const c = Math.floor(x / 100), r = x % 100;
+      const dd = r < 30 ? U[r] : D[Math.floor(r / 10)] + (r % 10 ? " Y " + U[r % 10] : "");
+      return [CEN[c], dd].filter(Boolean).join(" ");
+    };
+    const mill = Math.floor(n / 1e6), miles = Math.floor((n % 1e6) / 1000), resto = n % 1000;
+    const p = [];
+    if (mill) p.push(mill === 1 ? "UN MILLÓN" : tres(mill).replace(/UNO$/, "UN") + " MILLONES");
+    if (miles) p.push(miles === 1 ? "MIL" : tres(miles).replace(/UNO$/, "UN") + " MIL");
+    if (resto) p.push(tres(resto));
+    return p.join(" ") + ((!miles && !resto && mill) ? " DE PESOS" : " PESOS");
+  }
+  // Documentos y soportes: imágenes a JPEG ≤1400 px; PDF tal cual si pesa ≤ 700 KB
+  // (cada archivo se guarda en su propio documento de Firestore, máximo 1 MB)
+  function archivoReducido(file) {
+    return new Promise((ok, fail) => {
+      if (!file) return fail(new Error("Sin archivo"));
+      if (file.type === "application/pdf") {
+        if (file.size > 700 * 1024) return fail(new Error("El PDF pesa más de 700 KB. Tómele una foto al documento o redúzcalo."));
+        const fr = new FileReader(); fr.onload = () => ok({ data: fr.result, tipo: "pdf", nombre: file.name }); fr.onerror = () => fail(new Error("No se pudo leer el PDF")); fr.readAsDataURL(file); return;
+      }
+      if (!/^image\//.test(file.type)) return fail(new Error("Use una foto (JPG/PNG) o un PDF."));
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        let M = 1400, q = 0.72, data;
+        for (let k = 0; k < 4; k++) {   // baja tamaño/calidad hasta que quepa
+          const r = Math.min(1, M / Math.max(img.width, img.height));
+          const c = document.createElement("canvas"); c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+          const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+          data = c.toDataURL("image/jpeg", q);
+          if (data.length < 900000) break;
+          M = Math.round(M * 0.75); q = Math.max(0.5, q - 0.08);
+        }
+        URL.revokeObjectURL(url); ok({ data, tipo: "img", nombre: file.name });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); fail(new Error("No se pudo leer la imagen")); };
+      img.src = url;
+    });
+  }
+  // Abre un archivo guardado (data:…) en otra pestaña
+  function verArchivo(a) {
+    if (!a || !a.data) { alert("No se encontró el archivo."); return; }
+    if (!/^data:(image\/(jpeg|png|webp)|application\/pdf);base64,/.test(a.data)) return;
+    const w = window.open("", "_blank");
+    if (!w) { alert("Permita ventanas emergentes para ver el documento."); return; }
+    w.document.write(a.tipo === "pdf"
+      ? `<title>${esc(a.nombre || "Documento")}</title><iframe src="${a.data}" style="border:0;position:fixed;inset:0;width:100%;height:100%"></iframe>`
+      : `<title>${esc(a.nombre || "Documento")}</title><body style="margin:0;background:#333"><img src="${a.data}" style="max-width:100%;display:block;margin:auto"></body>`);
+  }
+  function hoyLargo(iso) {
+    const d = iso ? new Date(iso) : new Date();
+    return d.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+  }
+  // Sufijo para conservar el modo demo en los enlaces
+  const DEMO_Q = window.GRS_DEMO ? "&demo" : "";
 
   // Solo se muestran fotos guardadas como imagen embebida (data:image/…)
   function fotoSrc(i) {
@@ -283,5 +469,6 @@
     if (img && !img.complete) img.onload = () => window.print(); else window.print();
   }
 
-  window.GRS = { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, telWa, hoja, imprimir, hoyISO, valorPara, TIPOS, fotoReducida, fotoSrc };
+  window.GRS = { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, telWa, hoja, imprimir, hoyISO, valorPara, TIPOS, fotoReducida, fotoSrc,
+    MESES, PREESCOLAR, nivelDe, cobrosPara, calcFactura, estadoPagoMat, estadoFolio, enLetras, archivoReducido, verArchivo, hoyLargo, DEMO_Q };
 })();

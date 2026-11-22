@@ -30,6 +30,13 @@ Servidor `gimnasio-real-sabana-web` en `.claude/launch.json` (puerto 5691). El f
 - Base de datos: Firebase, proyecto `gimnasio-real-sabana` (cuenta de Google del colegio). Reglas en `herramientas/firestore.rules`: si se cambian aquí, hay que pegarlas también en Firestore → Reglas → Publicar.
 - Para agregar otra persona al panel: crear el usuario en Authentication y agregar su correo a la lista de `esColegio()` en las reglas.
 
+## Matrícula 2027 (misma carpeta `inscripciones/`)
+- Página para la familia: `matricula.html?c=CÓDIGO&d=DOCUMENTO` (también desde «Consultar mi inscripción» → «Ver factura y matricular»). Carné: `carnet.html?id=GRS-2027-0001`.
+- Flujo: cupo guardado → factura (FM27-0001…) → pago (la familia sube soporte, o secretaría registra efectivo con recibo) → folio (N.° 0001…) con documentos y firmas → el colegio confirma → carné digital + registro en la cartera (💰 en el panel).
+- **Todo se configura en el panel → ⚙️ Configuración → Matrícula**: valores de matrícula y pensión por grado, otros cobros, fecha máxima, medios de pago, día de pago de la pensión, documentos exigidos, datos legales (razón social, NIT, resolución, rectoría) y textos del contrato y del pagaré del Gimnasio. Mientras un grado tenga matrícula en $0, la familia no ve factura.
+- Colecciones de Firestore: `matriculas` (lo que llena la familia), `matriculas_admin` (lo que decide el colegio), `matriculas_docs` (un archivo por documento), `contadores`, `carnets`, `cartera`.
+- Probar sin tocar la base real: agregar `?demo` a cualquier página (PIN del panel: 2027).
+
 ## Publicación
 - Página: https://gimnasiorealdelasabana.github.io
 - Repositorio: https://github.com/gimnasiorealdelasabana/gimnasiorealdelasabana.github.io (cuenta del colegio, separada de CORPOSEPI)

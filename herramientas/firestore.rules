@@ -32,6 +32,61 @@ service cloud.firestore {
       allow list, update, delete: if esColegio();
     }
 
+    // ================= MATRÍCULA 2027 =================
+    // La familia solo puede escribir en su matrícula si conoce el código Y el documento
+    // del estudiante, y si el cupo ya está guardado (inscripción pagada).
+    function familiaDe(codigo, numDoc) {
+      let i = get(/databases/$(database)/documents/inscripciones/$(codigo)).data;
+      return i.numDoc == numDoc && i.estado == 'guardado';
+    }
+
+    // Lo que llena la familia: factura vista, pago reportado, folio, documentos y firmas
+    match /matriculas/{codigo} {
+      allow get: if true;
+      allow list, delete: if esColegio();
+      allow create, update: if esColegio() || (
+           request.resource.data.codigo == codigo
+        && familiaDe(codigo, request.resource.data.numDoc)
+        && request.resource.data.keys().hasOnly(['codigo', 'numDoc', 'anio', 'factura', 'pagoReportado', 'subidos',
+             'folio', 'enviada', 'acuExpedida', 'acuCorreo', 'acepta', 'firmas', 'docs']));
+    }
+
+    // Lo que decide el colegio: pago aprobado/rechazado, corrección, confirmación, carné.
+    // La familia solo lo puede leer.
+    match /matriculas_admin/{codigo} {
+      allow get: if true;
+      allow list, write: if esColegio();
+    }
+
+    // Documentos y soporte de pago (un archivo por documento, máx. ~1 MB)
+    match /matriculas_docs/{id} {
+      allow get: if true;
+      allow list, delete: if esColegio();
+      allow create, update: if esColegio() || (
+           request.resource.data.codigo is string
+        && id.matches(request.resource.data.codigo + '_[A-Za-z0-9_]+')
+        && familiaDe(request.resource.data.codigo, request.resource.data.numDoc)
+        && request.resource.data.data is string && request.resource.data.data.size() < 1000000);
+    }
+
+    // Consecutivos (factura, folio, carné): solo se pueden aumentar de 1 en 1
+    match /contadores/{nombre} {
+      allow get: if true;
+      allow create: if esColegio() || request.resource.data.n == 1;
+      allow update: if esColegio() || request.resource.data.n == resource.data.n + 1;
+    }
+
+    // Carné digital: cualquiera con el enlace/QR lo ve; solo el colegio lo crea
+    match /carnets/{id} {
+      allow get: if true;
+      allow list, write: if esColegio();
+    }
+
+    // Cartera (matrícula y pensiones): solo el colegio
+    match /cartera/{id} {
+      allow read, write: if esColegio();
+    }
+
     // Todo lo demás, cerrado
     match /{document=**} {
       allow read, write: if false;
