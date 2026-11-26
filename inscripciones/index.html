@@ -266,9 +266,18 @@
   if (!cfg.abierto) { $("#cerrado").hidden = false; $("#form").hidden = true; $("#info-pago").hidden = true; }
 
   const lim = cfg.fechaCierre ? ` Las inscripciones en línea cierran el <b>${fecha(cfg.fechaCierre + "T12:00:00")}</b>.` : "";
-  $("#info-pago").innerHTML = `💵 <b>¿Cómo se guarda el cupo?</b> Al terminar recibirá un <b>código</b>. Preséntelo en ${esc(cfg.lugarPago)} y cancele
-    la inscripción en efectivo dentro de los <b>${cfg.diasPlazo} días</b> siguientes (${esc(cfg.horario)}).${lim}
-    <br>Valor de la inscripción: <b>estudiantes nuevos ${pesos(cfg.valorNuevo)}</b> · <b>estudiantes de continuidad ${pesos(cfg.valorContinuidad)}</b>.`;
+  const contAbierta = GRS.continuidadAbierta(cfg);
+  $("#info-pago").innerHTML = `💵 <b>¿Cómo se guarda el cupo?</b> Al terminar recibirá un <b>código</b>.
+    <br>• <b>Estudiantes de continuidad</b>: preséntelo en ${esc(cfg.lugarPago)} y cancele la inscripción (${pesos(cfg.valorContinuidad)}) en efectivo dentro de los <b>${cfg.diasPlazo} días</b> siguientes.
+    ${cfg.cierreContinuidad ? (contAbierta ? `Plazo para inscribirse: <b>hasta el ${fecha(cfg.cierreContinuidad)}</b>; después esos cupos se habilitan para estudiantes nuevos.` : `<b>El plazo para continuidad terminó el ${fecha(cfg.cierreContinuidad)}</b>; comuníquese con la secretaría.`) : ""}
+    <br>• <b>Estudiantes nuevos</b>: el colegio los cita a una <b>entrevista con psicología</b>. Si el estudiante es admitido, se cancela la inscripción (${pesos(cfg.valorNuevo)}) en efectivo dentro de los ${cfg.diasPlazo} días siguientes a la admisión.
+    <br><small>${esc(cfg.horario).replace(/\.$/, "")}.${lim}</small>`;
+  // Continuidad cerrada después de la fecha límite
+  if (!contAbierta) {
+    const r = document.querySelector('input[name="tipoEstudiante"][value="continuidad"]');
+    r.disabled = true; r.checked = false;
+    r.closest("label").insertAdjacentHTML("beforeend", ` <small style="color:var(--rojo)">(plazo cerrado el ${fecha(cfg.cierreContinuidad)})</small>`);
+  }
   $$(".v-tipo").forEach(b => b.textContent = "· " + pesos(valorPara(b.dataset.tipo, cfg)));
 
   // ----- grados con cupos -----
@@ -449,7 +458,7 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       console.error(e);
-      $("#err").textContent = "No se pudo enviar. Revise su conexión a internet e intente de nuevo.";
+      $("#err").textContent = /plazo/.test(e.message || "") ? e.message : "No se pudo enviar. Revise su conexión a internet e intente de nuevo.";
       $("#err").hidden = false;
     } finally { btn.disabled = false; btn.textContent = "Enviar inscripción ✓"; }
   };
@@ -458,7 +467,10 @@
     const est = estadoReal(i), st = ESTADOS[est];
     const val = i.valorInscripcion || valorPara(i.tipoEstudiante, cfg);
     let msg = "";
-    if (est === "pendiente") msg = `<div class="aviso aviso-a" style="text-align:left">⏳ <b>Su cupo aún no está guardado.</b> Acérquese a ${esc(cfg.lugarPago)} con este código y cancele ${val ? `<b>${pesos(val)}</b>` : "el valor de la inscripción"} en efectivo <b>antes del ${fecha(i.venceEl)}</b>. ${esc(cfg.horario)}.</div>`;
+    const adm = i.entrevista && i.entrevista.estado === "admitido";
+    if (est === "entrevista") msg = `<div class="aviso aviso-i" style="text-align:left">🧠 <b>Inscripción recibida. Siguiente paso: entrevista con psicología.</b> El colegio se comunicará con usted por WhatsApp para programarla${i.entrevista && i.entrevista.cita ? ` (cita: <b>${new Date(i.entrevista.cita).toLocaleString("es-CO", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" })}</b>)` : ""}. Después de la entrevista le informaremos si puede continuar con el pago de la inscripción.</div>`;
+    else if (est === "noadmitido") msg = `<div class="aviso aviso-r" style="text-align:left">Agradecemos su interés en el Colegio Gimnasio Real de la Sabana. Después de la entrevista, en esta ocasión no es posible continuar con el proceso de inscripción. Para más información comuníquese con la rectoría.</div>`;
+    else if (est === "pendiente") msg = `<div class="aviso aviso-a" style="text-align:left">${adm ? "🎉 <b>¡El estudiante fue admitido!</b> " : ""}⏳ <b>Su cupo aún no está guardado.</b> Acérquese a ${esc(cfg.lugarPago)} con este código y cancele ${val ? `<b>${pesos(val)}</b>` : "el valor de la inscripción"} en efectivo <b>antes del ${fecha(i.venceEl)}</b>. ${esc(cfg.horario)}.</div>`;
     else if (est === "guardado") msg = `<div class="aviso aviso-ok" style="text-align:left">✅ <b>¡Cupo guardado!</b> Recibimos su pago${i.pago ? ` (recibo No. ${esc(i.pago.recibo)}, ${fecha(i.pago.fecha)})` : ""}. Le informaremos las fechas de matrícula.</div>`;
     else if (est === "vencido") msg = `<div class="aviso aviso-r" style="text-align:left">⚠️ <b>El plazo de pago venció el ${fecha(i.venceEl)}.</b> El cupo puede ser asignado a otro estudiante. Comuníquese de inmediato con la secretaría.</div>`;
     else msg = `<div class="aviso aviso-r" style="text-align:left">Esta inscripción figura como <b>${st.txt.toLowerCase()}</b>. Comuníquese con la secretaría del colegio.</div>`;
@@ -466,7 +478,7 @@
       ? `<a class="btn btn-ok" target="_blank" rel="noopener" href="https://wa.me/${telWa(cfg.whatsappSecretaria)}?text=${encodeURIComponent(`Hola, inscribí a ${nombreEst(i)} para ${i.grado} ${C.anio}. Mi código es ${i.codigo}.`)}">WhatsApp secretaría</a>` : "";
     cont.innerHTML = `
       ${nuevo ? `<div style="font-size:46px">🎉</div><h2>¡Inscripción recibida!</h2>` : `<h2>Estado de la inscripción</h2>`}
-      <p class="ayuda">${nuevo ? "Guarde este código: lo necesitará para pagar y para consultar el estado." : ""}</p>
+      <p class="ayuda">${nuevo ? "Guarde este código: lo necesitará para consultar el estado, pagar y matricular." : ""}</p>
       <div class="codigo">${esc(i.codigo)}</div>
       <div><span class="pill ${st.cls}">${st.txt}</span>${i.listaEspera && est !== "guardado" ? ' <span class="pill st-lib">Lista de espera</span>' : ""}</div>
       ${fotoSrc(i) ? `<div style="margin-top:12px"><img class="foto-mini" src="${esc(fotoSrc(i))}" alt="Foto del estudiante"></div>` : ""}

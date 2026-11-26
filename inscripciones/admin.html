@@ -122,6 +122,8 @@
       <div class="c6"><label class="f">Inscripción estudiante de continuidad (pesos)</label><input name="valorContinuidad" type="number" min="0" step="1"></div>
       <div class="c6"><label class="f">Días de plazo para pagar</label><input name="diasPlazo" type="number" min="1" max="60"></div>
       <div class="c6"><label class="f">Fecha de cierre (opcional)</label><input name="fechaCierre" type="date"></div>
+      <div class="c6"><label class="f">Inscripción de continuidad hasta</label><input name="cierreContinuidad" type="date">
+        <div class="nota">Después de esta fecha el formulario ya no deja inscribir estudiantes de continuidad, para habilitar los cupos a estudiantes nuevos.</div></div>
       <div class="c6"><label class="f">WhatsApp de secretaría</label><input name="whatsappSecretaria" type="tel" placeholder="3001234567"></div>
       <div class="c6"><label class="f">Lugar de pago</label><input name="lugarPago"></div>
       <div class="c12"><label class="f">Horario de atención</label><input name="horario"></div>
@@ -247,15 +249,16 @@
     const k = (id, n, l, color) => `<div class="kpi ${filtroKpi === id ? "on" : ""}" data-k="${id}"><div class="n" style="color:${color}">${n}</div><div class="l">${l}</div></div>`;
     $("#kpis").innerHTML =
       k("", c.todas, "Inscripciones", "var(--azul)") +
+      k("entrevista", c.entrevista, "Pendientes de entrevista (nuevos)", "var(--azul)") +
       k("pendiente", c.pendiente, "Pendientes de pago", "var(--alerta)") +
       k("guardado", c.guardado, "Cupos guardados", "var(--ok)") +
-      k("vencido", c.vencido, "Plazo vencido", "var(--rojo)") +
-      `<div class="kpi" style="cursor:default"><div class="n" style="font-size:22px;color:var(--ok)">${pesos(recaudo)}</div><div class="l">Recaudado en efectivo</div></div>`;
+      k("vencido", c.vencido, "Plazo vencido", "var(--rojo)");
     // Matrícula
     const cm = { pago: 0, folio: 0, matriculado: 0 };
     lista.forEach(i => { const e = etapaMat(i); if (e && cm[e.k] !== undefined) cm[e.k]++; });
     const km = (id, n, l, color) => `<div class="kpi ${filtroKpi === id ? "on" : ""}" data-k="${id}"><div class="n" style="color:${color}">${n}</div><div class="l">${l}</div></div>`;
-    $("#kpis-mat").innerHTML = km("m:pago", cm.pago, "Pagos de matrícula por revisar", "var(--alerta)") +
+    $("#kpis-mat").innerHTML = `<div class="kpi" style="cursor:default"><div class="n" style="font-size:22px;color:var(--ok)">${pesos(recaudo)}</div><div class="l">Recaudado inscripciones</div></div>` +
+      km("m:pago", cm.pago, "Pagos de matrícula por revisar", "var(--alerta)") +
       km("m:folio", cm.folio, "Folios por revisar", "var(--alerta)") + km("m:matriculado", cm.matriculado, "Matriculados " + C.anio, "var(--ok)");
     $$(".kpi[data-k]").forEach(d => d.onclick = () => { filtroKpi = d.dataset.k; $("#f-est").value = filtroKpi.startsWith("m:") ? "" : filtroKpi; pintarLista(); pintarKpis(); });
   }
@@ -275,19 +278,20 @@
   }
 
   function pintarCupos() {
-    let filas = "", tc = 0, tg = 0, tp = 0;
+    let filas = "", tc = 0, tg = 0, tp = 0, te = 0;
     GRADOS.forEach(g => {
       const cup = Number(cfg.cupos[g]) || 0;
       const gu = lista.filter(i => i.grado === g && i.estado === "guardado").length;
       const pe = lista.filter(i => i.grado === g && estadoReal(i) === "pendiente").length;
-      tc += cup; tg += gu; tp += pe;
+      const en = lista.filter(i => i.grado === g && estadoReal(i) === "entrevista").length;
+      tc += cup; tg += gu; tp += pe; te += en;
       const disp = cup - gu, pct = cup ? Math.min(100, gu / cup * 100) : 0;
-      filas += `<tr><td><b>${g}</b></td><td>${cup}</td><td>${gu}</td><td>${pe}</td>
+      filas += `<tr><td><b>${g}</b></td><td>${cup}</td><td>${gu}</td><td>${pe}</td><td>${en}</td>
         <td style="font-weight:800;color:${disp <= 0 ? "var(--rojo)" : "var(--ok)"}">${disp <= 0 ? "Lleno" : disp}</td>
         <td><div class="barra"><i style="width:${pct}%"></i></div></td></tr>`;
     });
-    $("#t-cupos").innerHTML = `<thead><tr><th>Grado</th><th>Cupos</th><th>Guardados (pagos)</th><th>Pendientes</th><th>Disponibles</th><th>Ocupación</th></tr></thead>
-      <tbody>${filas}<tr style="font-weight:800"><td>Total</td><td>${tc}</td><td>${tg}</td><td>${tp}</td><td>${tc - tg}</td><td></td></tr></tbody>`;
+    $("#t-cupos").innerHTML = `<thead><tr><th>Grado</th><th>Cupos</th><th>Guardados (pagos)</th><th>Pendientes de pago</th><th>En entrevista</th><th>Disponibles</th><th>Ocupación</th></tr></thead>
+      <tbody>${filas}<tr style="font-weight:800"><td>Total</td><td>${tc}</td><td>${tg}</td><td>${tp}</td><td>${te}</td><td>${tc - tg}</td><td></td></tr></tbody>`;
   }
 
   function filtrada() {
@@ -318,7 +322,7 @@
           <td>${esc(i.grado)}${i.listaEspera ? '<br><small style="color:var(--alerta)">lista de espera</small>' : ""}</td>
           <td>${esc(i.acuNombre)}<br><small style="color:var(--gris)">${esc(i.acuTel)}</small></td>
           <td>${fecha(i.creado)}</td>
-          <td>${i.estado === "pendiente" ? fecha(i.venceEl) : "—"}</td>
+          <td>${["pendiente", "vencido"].includes(estadoReal(i)) ? fecha(i.venceEl) : "—"}</td>
           <td><span class="pill ${st.cls}">${st.txt}</span>${(e => e ? `<br><span class="pill ${e.cls}" style="margin-top:4px">${e.txt}</span>` : "")(etapaMat(i))}</td></tr>`;
       }).join("") + "</tbody>";
     $$("#t-ins tr[data-c]").forEach(tr => tr.onclick = () => detalle(tr.dataset.c));
@@ -590,12 +594,42 @@
     const d = (t, v) => `<div><b>${t}</b>${esc(v) || "—"}</div>`;
     const hoy = GRS.hoyISO();
     const waAcu = telWa(i.acuTel);
-    const msgRec = est === "guardado"
-      ? `Hola ${i.acuNombre}. Le confirmamos que el cupo de ${nombreEst(i)} para ${i.grado} ${C.anio} en el Gimnasio Real de la Sabana quedó GUARDADO. Código: ${i.codigo}. ¡Bienvenidos!`
-      : `Hola ${i.acuNombre}. Le recordamos que la inscripción de ${nombreEst(i)} para ${i.grado} ${C.anio} (código ${i.codigo}) está PENDIENTE DE PAGO. Para guardar el cupo, acérquese a ${cfg.lugarPago} y cancele ${pesos(i.valorInscripcion || valorPara(i.tipoEstudiante, cfg))} en efectivo antes del ${fecha(i.venceEl)}. ${cfg.horario}. Gimnasio Real de la Sabana.`;
+    const ent = i.entrevista || null, admitido = !!(ent && ent.estado === "admitido");
+    const citaTxt = ent && ent.cita ? new Date(ent.cita).toLocaleString("es-CO", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }) : "";
+    const valorIns = pesos(i.valorInscripcion || valorPara(i.tipoEstudiante, cfg));
+    let msgRec = "", lblRec = "";
+    if (est === "guardado") { lblRec = "Confirmar cupo";
+      msgRec = `Hola ${i.acuNombre}. Le confirmamos que el cupo de ${nombreEst(i)} para ${i.grado} ${C.anio} en el Gimnasio Real de la Sabana quedó GUARDADO. Código: ${i.codigo}. ¡Bienvenidos!`; }
+    else if (est === "entrevista") { lblRec = citaTxt ? "Citar a entrevista" : "Pedir disponibilidad para la entrevista";
+      msgRec = citaTxt
+        ? `Hola ${i.acuNombre}. Recibimos la inscripción de ${nombreEst(i)} para ${i.grado} ${C.anio} en el Colegio Gimnasio Real de la Sabana. El siguiente paso es la entrevista con psicología: los esperamos el ${citaTxt} en la Carrera 6 No. 5-05, Centro, Madrid. Por favor asista con el estudiante. Código de inscripción: ${i.codigo}.`
+        : `Hola ${i.acuNombre}. Recibimos la inscripción de ${nombreEst(i)} para ${i.grado} ${C.anio} en el Colegio Gimnasio Real de la Sabana. El siguiente paso es una entrevista con psicología. ¿Qué día y hora le queda bien para asistir con el estudiante? Código de inscripción: ${i.codigo}.`; }
+    else if (est === "noadmitido") { lblRec = "Informar resultado";
+      msgRec = `Hola ${i.acuNombre}. Agradecemos su interés en el Colegio Gimnasio Real de la Sabana y su asistencia a la entrevista. En esta ocasión no es posible continuar con el proceso de inscripción de ${nombreEst(i)}. Si desea más información, con gusto lo atendemos en la rectoría.`; }
+    else if (est === "pendiente" || est === "vencido") { lblRec = admitido ? "Avisar admisión y pago" : "Recordar pago";
+      msgRec = `Hola ${i.acuNombre}. ${admitido ? `¡Buenas noticias! Después de la entrevista con psicología, ${nombreEst(i)} fue ADMITIDO(A) para ${i.grado} ${C.anio} en el Colegio Gimnasio Real de la Sabana. ` : `Le recordamos que la inscripción de ${nombreEst(i)} para ${i.grado} ${C.anio} (código ${i.codigo}) está PENDIENTE DE PAGO. `}Para guardar el cupo, acérquese a ${cfg.lugarPago} y cancele la inscripción (${valorIns}) en efectivo antes del ${fecha(i.venceEl)}. ${cfg.horario}. Código: ${i.codigo}.`; }
 
     let acciones = "";
-    if (i.estado === "pendiente") acciones = `
+    const hora = ent && ent.cita ? (d0 => new Date(d0.getTime() - d0.getTimezoneOffset() * 6e4).toISOString().slice(0, 16))(new Date(ent.cita)) : "";
+    if (est === "entrevista") acciones = `
+      <form class="pago-box" id="fentrev" style="background:var(--azul-suave);border-color:#ccd7ee">
+        <h3 style="margin:0 0 6px;color:var(--azul)">🧠 Entrevista con psicología (estudiante nuevo)</h3>
+        <p class="nota" style="margin:0 0 10px">Solo si el estudiante es admitido sigue al pago de la inscripción; el plazo de pago empieza a contar desde la admisión. Las observaciones de la entrevista guárdelas en los registros de psicología, no aquí.</p>
+        <div class="grid">
+          <div class="c6"><label class="f">Fecha y hora de la entrevista</label><input name="cita" type="datetime-local" value="${esc(hora)}"></div>
+          <div class="c6"><label class="f">Quién la realiza</label><input name="psico" value="${esc((ent && ent.psico) || localStorage.getItem("grs_psico") || "")}" placeholder="Psicología"></div>
+        </div>
+        <div class="acciones" style="margin-top:12px;justify-content:flex-start">
+          <button type="submit" class="btn btn-s">💾 Guardar cita</button>
+          <button type="button" class="btn btn-ok" id="e-admitir">✓ Admitido: continúa al pago</button>
+          <button type="button" class="btn btn-s" id="e-noadmitir" style="color:var(--rojo)">✕ No admitido</button>
+        </div>
+      </form>`;
+    else if (est === "noadmitido") acciones = `
+      <div class="pago-box" style="background:#f3f4f6;border-color:var(--linea)"><b>🧠 Entrevista: no admitido</b>${ent.fecha ? " — " + fecha(ent.fecha, true) : ""}${ent.por ? " · " + esc(ent.por) : ""}
+        <div class="acciones" style="margin-top:10px;justify-content:flex-start"><button type="button" class="btn btn-s" id="e-revertir">Volver a «pendiente de entrevista»</button></div></div>`;
+    else if (i.estado === "pendiente") acciones = `
+      ${admitido ? `<div class="aviso aviso-ok">🧠 Admitido después de la entrevista con psicología${ent.fecha ? " el " + fecha(ent.fecha) : ""}.</div>` : ""}
       <form class="pago-box" id="fpago">
         <h3 style="margin:0 0 10px;color:var(--ok)">💵 Registrar pago en efectivo</h3>
         <div class="grid">
@@ -619,8 +653,8 @@
       ${i.estado === "guardado" ? cajaMatricula(i) : ""}
       <div class="acciones" style="margin:0 0 14px;justify-content:flex-start">
         <button class="btn btn-a" id="d-imp">🖨️ Imprimir formulario</button>
-        ${waAcu ? `<a class="btn btn-ok" target="_blank" rel="noopener" href="https://wa.me/${waAcu}?text=${encodeURIComponent(msgRec)}">📲 ${est === "guardado" ? "Confirmar" : "Recordar pago"} por WhatsApp</a>` : ""}
-        ${i.estado === "pendiente" ? `<button class="btn btn-s" id="d-ampliar">⏱️ Ampliar plazo</button><button class="btn btn-s" id="d-liberar">Liberar cupo</button>` : ""}
+        ${waAcu && msgRec ? `<a class="btn btn-ok" target="_blank" rel="noopener" href="https://wa.me/${waAcu}?text=${encodeURIComponent(msgRec)}">📲 ${lblRec} por WhatsApp</a>` : ""}
+        ${["pendiente", "vencido"].includes(est) ? `<button class="btn btn-s" id="d-ampliar">⏱️ Ampliar plazo</button><button class="btn btn-s" id="d-liberar">Liberar cupo</button>` : ""}
         ${i.estado === "guardado" && !mats[i.codigo] && !adms[i.codigo] ? `<button class="btn btn-s" id="d-revertir">Revertir pago</button>` : ""}
         ${i.estado === "liberado" || i.estado === "anulado" ? `<button class="btn btn-s" id="d-reactivar">Reactivar inscripción</button>` : ""}
         ${i.estado !== "anulado" && i.estado !== "guardado" ? `<button class="btn btn-s" id="d-anular" style="color:var(--rojo)">Anular</button>` : ""}
@@ -644,7 +678,7 @@
         ${d("Emergencia", i.emeNombre)}${d("Teléfono emergencia", i.emeTel)}
         <h4>Registro</h4>
         ${d("Diligenciado por", i.firmaNombre + " (" + i.firmaParentesco + ")")}${d("Fecha", fecha(i.creado, true))}
-        ${d("Plazo de pago", fecha(i.venceEl))}${d("Última modificación", i.modificado ? fecha(i.modificado, true) + (i.nota ? " — " + i.nota : "") : "")}
+        ${d("Plazo de pago", ["entrevista", "noadmitido"].includes(est) ? "Después de la entrevista" : fecha(i.venceEl))}${ent ? d("Entrevista", ({ pendiente: "Pendiente", admitido: "Admitido", noadmitido: "No admitido" })[ent.estado] + (citaTxt ? " · cita: " + citaTxt : "")) : ""}${d("Última modificación", i.modificado ? fecha(i.modificado, true) + (i.nota ? " — " + i.nota : "") : "")}
       </div>`;
     $("#m-det").hidden = false;
     const usuario = Store.usuario();
@@ -670,6 +704,27 @@
         "Pago registrado: cupo guardado ✓");
     };
     const on = (id, fn) => { const b = $(id); if (b) b.onclick = fn; };
+    // ---- entrevista con psicología ----
+    const fen = $("#fentrev");
+    const datosEnt = () => ({ estado: "pendiente", cita: fen.cita.value ? new Date(fen.cita.value).toISOString() : "", psico: fen.psico.value.trim() });
+    if (fen) fen.onsubmit = ev => {
+      ev.preventDefault(); localStorage.setItem("grs_psico", fen.psico.value.trim());
+      cambiar({ entrevista: datosEnt() }, "Cita guardada — envíela con el botón verde de WhatsApp");
+    };
+    on("#e-admitir", () => {
+      if (!confirm(`¿${nombreEst(i)} fue ADMITIDO(A) después de la entrevista?\n\nPasa a «Pendiente de pago» y tiene ${cfg.diasPlazo} días para pagar la inscripción.`)) return;
+      const v = new Date(Date.now() + (Number(cfg.diasPlazo) || 8) * 864e5); v.setHours(23, 59, 0, 0);
+      cambiar({ entrevista: Object.assign(datosEnt(), { estado: "admitido", fecha: new Date().toISOString(), por: usuario }), venceEl: v.toISOString(), nota: "Admitido tras entrevista" },
+        "Admitido ✓ — avísele a la familia con el botón verde de WhatsApp");
+    });
+    on("#e-noadmitir", () => {
+      if (!confirm(`¿Confirmar que ${nombreEst(i)} NO fue admitido(a)?`)) return;
+      cambiar({ entrevista: Object.assign(datosEnt(), { estado: "noadmitido", fecha: new Date().toISOString(), por: usuario }), nota: "No admitido tras entrevista" }, "Registrado como no admitido");
+    });
+    on("#e-revertir", () => {
+      if (!confirm("¿Volver a «pendiente de entrevista»?")) return;
+      cambiar({ entrevista: { estado: "pendiente", cita: ent.cita || "", psico: ent.psico || "" }, nota: "Entrevista reabierta" }, "Volvió a pendiente de entrevista");
+    });
     on("#d-ampliar", () => {
       const n = prompt("¿Cuántos días más de plazo, contados desde hoy?", "5"); if (!n || isNaN(n)) return;
       const v = new Date(Date.now() + Number(n) * 864e5); v.setHours(23, 59, 0, 0);
@@ -734,7 +789,7 @@
   $("#b-cfg").onclick = () => {
     const f = $("#fcfg");
     f.abierto.checked = cfg.abierto;
-    ["valorNuevo", "valorContinuidad", "diasPlazo", "fechaCierre", "whatsappSecretaria", "lugarPago", "horario"].forEach(k => f[k].value = cfg[k] ?? "");
+    ["valorNuevo", "valorContinuidad", "diasPlazo", "fechaCierre", "cierreContinuidad", "whatsappSecretaria", "lugarPago", "horario"].forEach(k => f[k].value = cfg[k] ?? "");
     $("#cfg-cupos").innerHTML = GRADOS.map(g => `<div class="c4"><label class="f">${g}</label><input type="number" min="0" data-g="${g}" value="${cfg.cupos[g] || 0}"></div>`).join("");
     // matrícula
     const mt = cfg.matricula, lg = mt.legal;
@@ -774,6 +829,7 @@
       valorContinuidad: Number(f.valorContinuidad.value) || 0,
       diasPlazo: Number(f.diasPlazo.value) || 8,
       fechaCierre: f.fechaCierre.value,
+      cierreContinuidad: f.cierreContinuidad.value,
       whatsappSecretaria: f.whatsappSecretaria.value.trim(),
       lugarPago: f.lugarPago.value.trim() || "Secretaría del colegio",
       horario: f.horario.value.trim(),
@@ -800,7 +856,7 @@
   };
 
   // ---------- compartir / exportar ----------
-  const textoPadres = () => `🏫 *Colegio Gimnasio Real de la Sabana* — Madrid, Cundinamarca\n\nApreciados padres de familia: ya están abiertas las *inscripciones ${C.anio}* para Preescolar y Primaria.\n\n📝 Diligencie el formulario en línea aquí:\n${linkForm}\n\n💵 El cupo queda *guardado* al cancelar la inscripción en efectivo en ${cfg.lugarPago} (estudiantes nuevos ${pesos(cfg.valorNuevo)}, estudiantes de continuidad ${pesos(cfg.valorContinuidad)}) dentro de los ${cfg.diasPlazo} días siguientes. Si no se paga a tiempo, el cupo puede asignarse a otro estudiante.\n\n¡Gracias por elegirnos!`;
+  const textoPadres = () => `🏫 *Colegio Gimnasio Real de la Sabana* — Madrid, Cundinamarca\n\nApreciados padres de familia: ya están abiertas las *inscripciones ${C.anio}* para Preescolar y Primaria.\n\n📝 Diligencie el formulario en línea aquí:\n${linkForm}\n\n👨‍👩‍👧 *Estudiantes de continuidad:* inscríbanse a más tardar el *${fecha(cfg.cierreContinuidad)}*; luego esos cupos se habilitan para estudiantes nuevos.\n🧠 *Estudiantes nuevos:* después de inscribirse los citamos a una entrevista con psicología; si es admitido, sigue el pago.\n\n💵 El cupo queda *guardado* al cancelar la inscripción en efectivo en ${cfg.lugarPago} (estudiantes nuevos ${pesos(cfg.valorNuevo)}, estudiantes de continuidad ${pesos(cfg.valorContinuidad)}) dentro de los ${cfg.diasPlazo} días siguientes. Si no se paga a tiempo, el cupo puede asignarse a otro estudiante.\n\n📖 Guía paso a paso: ${linkForm}guia.html\n\n¡Gracias por elegirnos!`;
   $("#b-link").onclick = async () => {
     try { await navigator.clipboard.writeText(linkForm); toast("Link copiado: " + linkForm); }
     catch (e) { prompt("Copie el link del formulario:", linkForm); }

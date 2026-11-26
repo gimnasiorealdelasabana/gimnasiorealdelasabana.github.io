@@ -109,7 +109,11 @@
 
   async function pintar() {
     if (i.estado !== "guardado") {
-      V.innerHTML = cab() + `<div class="card">${etapas(0)}<div class="aviso aviso-a">⏳ <b>El cupo aún no está guardado.</b> Primero se paga la inscripción en efectivo en la secretaría. Cuando el colegio registre ese pago, aquí aparecerá la factura de matrícula.</div></div>`;
+      const er = GRS.estadoReal(i);
+      V.innerHTML = cab() + `<div class="card">${etapas(0)}<div class="aviso aviso-a">${er === "entrevista"
+        ? "🧠 <b>Primero es la entrevista con psicología.</b> El colegio se comunicará con usted para programarla. Si el estudiante es admitido, se paga la inscripción y luego aparecerá aquí la factura de matrícula."
+        : er === "noadmitido" ? "Esta inscripción no continúa en el proceso. Para más información comuníquese con la rectoría."
+        : "⏳ <b>El cupo aún no está guardado.</b> Primero se paga la inscripción en efectivo en la secretaría. Cuando el colegio registre ese pago, aquí aparecerá la factura de matrícula."}</div></div>`;
       return enlazarCab();
     }
     // Enlace de firma a distancia (?firma=padre / madre / acudiente)

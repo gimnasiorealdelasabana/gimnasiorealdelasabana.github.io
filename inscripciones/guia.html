@@ -50,6 +50,7 @@
   <div class="card">
     <h2>El recorrido completo</h2>
     <p class="ayuda">Son 4 etapas. Guarde bien el <b>código de inscripción</b> que recibe al inscribirse: con él y el documento del estudiante hace todo lo demás.</p>
+    <div class="aviso aviso-a" style="margin-bottom:12px">📅 <b>Estudiantes de continuidad:</b> inscríbanse a más tardar el <b id="g-cierre-cont">10 de diciembre</b>. Después de esa fecha esos cupos se habilitan para estudiantes nuevos.</div>
     <div class="indice"><a href="#e1">1. Inscripción</a><a href="#e2">2. Cupo guardado</a><a href="#e3">3. Factura y pago</a><a href="#e4">4. Folio, firmas y carné</a><a href="#preguntas">Preguntas</a></div>
   </div>
 
@@ -67,11 +68,12 @@
 
   <!-- 2 -->
   <section class="card" id="e2">
-    <div class="fase"><span class="n">2</span><h2>Pago de la inscripción: cupo guardado</h2></div>
+    <div class="fase"><span class="n">2</span><h2>Entrevista (nuevos) y pago de la inscripción</h2></div>
     <ol class="pasos-g">
+      <li><b>Estudiantes nuevos:</b> después de inscribirse, el colegio los cita por WhatsApp a una <b>entrevista con psicología</b> (asisten con el estudiante). Si el estudiante es <b>admitido</b>, le avisamos y sigue el pago de la inscripción. Los estudiantes de continuidad no tienen entrevista y pasan directo al pago.</li>
       <li>Acérquese a la <b><span id="g-lugar">secretaría del colegio</span></b> con el código y pague la inscripción <b>en efectivo</b>:
         <table class="val"><tr><th>Estudiante nuevo</th><td class="n" id="g-nuevo">$ 55.000</td></tr><tr><th>Estudiante de continuidad</th><td class="n" id="g-cont">$ 50.000</td></tr></table></li>
-      <li>Tiene <b><span id="g-dias">8</span> días</b> para pagar (<span id="g-horario">lunes a viernes de 7:00 a.m. a 3:00 p.m.</span>). <b>Si no paga a tiempo, el cupo puede asignarse a otro estudiante.</b></li>
+      <li>Tiene <b><span id="g-dias">8</span> días</b> para pagar (los nuevos, contados desde la admisión) (<span id="g-horario">lunes a viernes de 7:00 a.m. a 3:00 p.m.</span>). <b>Si no paga a tiempo, el cupo puede asignarse a otro estudiante.</b></li>
       <li>Cuando el colegio registra el pago, su inscripción queda en <b>«Cupo guardado»</b>.</li>
     </ol>
   </section>
@@ -137,7 +139,8 @@
   let cfg;
   try { await Store.init(); cfg = await Store.getConfig(); } catch (e) { return; }
   $("#g-nuevo").textContent = pesos(cfg.valorNuevo); $("#g-cont").textContent = pesos(cfg.valorContinuidad);
-  $("#g-dias").textContent = cfg.diasPlazo; $("#g-horario").textContent = cfg.horario; $("#g-lugar").textContent = (cfg.lugarPago || "secretaría del colegio").toLowerCase();
+  $("#g-dias").textContent = cfg.diasPlazo;
+  if (cfg.cierreContinuidad) $("#g-cierre-cont").textContent = GRS.fecha(cfg.cierreContinuidad); $("#g-horario").textContent = cfg.horario; $("#g-lugar").textContent = (cfg.lugarPago || "secretaría del colegio").toLowerCase();
   const mt = cfg.matricula;
   $("#g-medios").textContent = mt.mediosPago;
   $("#g-dia").textContent = mt.diaPension || 5;

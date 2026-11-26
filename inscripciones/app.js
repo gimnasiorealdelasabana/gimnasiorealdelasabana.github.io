@@ -7,7 +7,11 @@
   const GRADOS = ["Prejardín", "Jardín", "Transición",
     "Primero", "Segundo", "Tercero", "Cuarto", "Quinto"];
 
+  // Estudiantes nuevos: primero entrevista con psicología; solo si son admitidos pasan al pago.
+  // (en la base siguen con estado "pendiente" y el campo entrevista = { estado: pendiente|admitido|noadmitido })
   const ESTADOS = {
+    entrevista: { txt: "Pendiente de entrevista", cls: "st-pend" },
+    noadmitido: { txt: "No admitido", cls: "st-lib" },
     pendiente: { txt: "Pendiente de pago", cls: "st-pend" },
     guardado:  { txt: "Cupo guardado",     cls: "st-ok" },
     vencido:   { txt: "Plazo vencido",     cls: "st-venc" },
@@ -21,6 +25,8 @@
     valorContinuidad: 50000,  // estudiantes que ya estudian en el colegio
     diasPlazo: 8,
     fechaCierre: "",
+    // Inscripción de estudiantes de continuidad: hasta esta fecha (luego se habilitan los cupos para nuevos)
+    cierreContinuidad: (C.anio - 1) + "-12-10",
     whatsappSecretaria: "",
     horario: "Lunes a viernes de 7:00 a.m. a 3:00 p.m.",
     lugarPago: "Secretaría del colegio",
@@ -107,6 +113,8 @@
     return [i.nombre1, i.nombre2, i.apellido1, i.apellido2].filter(Boolean).join(" ");
   }
   function estadoReal(i) {
+    if (i.estado === "pendiente" && i.entrevista && i.entrevista.estado !== "admitido")
+      return i.entrevista.estado === "noadmitido" ? "noadmitido" : "entrevista";
     if (i.estado === "pendiente" && i.venceEl && new Date() > new Date(i.venceEl)) return "vencido";
     return i.estado;
   }
@@ -136,6 +144,10 @@
       img.onerror = () => { URL.revokeObjectURL(url); fail(new Error("No se pudo leer la imagen")); };
       img.src = url;
     });
+  }
+  // ¿Todavía se reciben inscripciones de continuidad?
+  function continuidadAbierta(cfg) {
+    return !cfg.cierreContinuidad || hoyISO() <= cfg.cierreContinuidad;
   }
   function telWa(t) {
     let d = String(t || "").replace(/\D/g, "");
@@ -260,11 +272,15 @@
         const fc = new Date(cfg.fechaCierre + "T23:59:00");
         if (fc < vence) vence = fc;
       }
+      if (data.tipoEstudiante === "continuidad" && !continuidadAbierta(cfg))
+        throw new Error("El plazo de inscripción para estudiantes de continuidad terminó el " + fecha(cfg.cierreContinuidad) + ".");
       const doc = Object.assign({}, data, {
         codigo, anio: C.anio, estado: "pendiente",
         creado: ahora.toISOString(), venceEl: vence.toISOString(),
         valorInscripcion: valorPara(data.tipoEstudiante, cfg)
       });
+      // los nuevos esperan la entrevista; el plazo de pago empieza cuando el colegio los admite
+      if (data.tipoEstudiante === "nuevo") doc.entrevista = { estado: "pendiente" };
       if (fs) await fs.collection("inscripciones").doc(codigo).set(doc);
       else { const m = local.all(); m[codigo] = doc; local.put(m); }
       return doc;
@@ -481,5 +497,5 @@
   }
 
   window.GRS = { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, telWa, hoja, imprimir, hoyISO, valorPara, TIPOS, fotoReducida, fotoSrc,
-    MESES, PREESCOLAR, nivelDe, cobrosPara, calcFactura, estadoPagoMat, estadoFolio, enLetras, archivoReducido, verArchivo, hoyLargo, DEMO_Q };
+    continuidadAbierta, MESES, PREESCOLAR, nivelDe, cobrosPara, calcFactura, estadoPagoMat, estadoFolio, enLetras, archivoReducido, verArchivo, hoyLargo, DEMO_Q };
 })();
