@@ -7,8 +7,9 @@
   const GRADOS = ["Prejardín", "Jardín", "Transición",
     "Primero", "Segundo", "Tercero", "Cuarto", "Quinto"];
 
-  // Estudiantes nuevos: primero entrevista con psicología; solo si son admitidos pasan al pago.
-  // (en la base siguen con estado "pendiente" y el campo entrevista = { estado: pendiente|admitido|noadmitido })
+  // Estudiantes nuevos: llenan el formulario y pagan la inscripción como todos; después del pago
+  // tienen entrevista con psicología y solo si son admitidos queda el cupo guardado (y siguen a la matrícula).
+  // En la base: estado "guardado" (pagó) + entrevista = { estado: pendiente|admitido|noadmitido }
   const ESTADOS = {
     entrevista: { txt: "Pendiente de entrevista", cls: "st-pend" },
     noadmitido: { txt: "No admitido", cls: "st-lib" },
@@ -113,7 +114,7 @@
     return [i.nombre1, i.nombre2, i.apellido1, i.apellido2].filter(Boolean).join(" ");
   }
   function estadoReal(i) {
-    if (i.estado === "pendiente" && i.entrevista && i.entrevista.estado !== "admitido")
+    if (i.estado === "guardado" && i.entrevista && i.entrevista.estado !== "admitido")
       return i.entrevista.estado === "noadmitido" ? "noadmitido" : "entrevista";
     if (i.estado === "pendiente" && i.venceEl && new Date() > new Date(i.venceEl)) return "vencido";
     return i.estado;
@@ -284,7 +285,7 @@
         creado: ahora.toISOString(), venceEl: vence.toISOString(),
         valorInscripcion: valorPara(data.tipoEstudiante, cfg)
       });
-      // los nuevos esperan la entrevista; el plazo de pago empieza cuando el colegio los admite
+      // los nuevos, después de pagar la inscripción, tienen entrevista con psicología
       if (data.tipoEstudiante === "nuevo") doc.entrevista = { estado: "pendiente" };
       if (fs) await fs.collection("inscripciones").doc(codigo).set(doc);
       else { const m = local.all(); m[codigo] = doc; local.put(m); }
@@ -323,7 +324,7 @@
     async recalcularOcupados(lista) {
       const cfg = await this.getConfig();
       const oc = {};
-      lista.forEach(i => { if (i.estado === "guardado") oc[i.grado] = (oc[i.grado] || 0) + 1; });
+      lista.forEach(i => { if (estadoReal(i) === "guardado") oc[i.grado] = (oc[i.grado] || 0) + 1; });
       cfg.ocupados = oc;
       await this.saveConfig(cfg);
       return cfg;

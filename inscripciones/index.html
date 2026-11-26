@@ -269,9 +269,10 @@
   const lim = cfg.fechaCierre ? ` Las inscripciones en línea cierran el <b>${fecha(cfg.fechaCierre + "T12:00:00")}</b>.` : "";
   const contAbierta = GRS.continuidadAbierta(cfg);
   $("#info-pago").innerHTML = `💵 <b>¿Cómo se guarda el cupo?</b> Al terminar recibirá un <b>código</b>.
-    <br>• <b>Estudiantes de continuidad</b>: preséntelo en ${esc(cfg.lugarPago)} y cancele la inscripción (${pesos(cfg.valorContinuidad)}) en efectivo dentro de los <b>${cfg.diasPlazo} días</b> siguientes.
+    Preséntelo en ${esc(cfg.lugarPago)} y cancele la inscripción en efectivo dentro de los <b>${cfg.diasPlazo} días</b> siguientes (continuidad ${pesos(cfg.valorContinuidad)} · nuevos ${pesos(cfg.valorNuevo)}).
+    <br>• <b>Estudiantes de continuidad</b>: con el pago queda el cupo guardado.
     ${cfg.cierreContinuidad ? (contAbierta ? `Plazo para inscribirse: <b>hasta el ${GRS.fechaLarga(cfg.cierreContinuidad)}</b>; después esos cupos se habilitan para estudiantes nuevos.` : `<b>El plazo para continuidad terminó el ${GRS.fechaLarga(cfg.cierreContinuidad)}</b>; comuníquese con la secretaría.`) : ""}
-    <br>• <b>Estudiantes nuevos</b>: el colegio los cita a una <b>entrevista con psicología</b>. Si el estudiante es admitido, se cancela la inscripción (${pesos(cfg.valorNuevo)}) en efectivo dentro de los ${cfg.diasPlazo} días siguientes a la admisión.
+    <br>• <b>Estudiantes nuevos</b>: después del pago, el colegio los cita a una <b>entrevista con psicología</b>. Si el estudiante es admitido, queda el cupo guardado y sigue la matrícula.
     <br><small>${esc(cfg.horario).replace(/\.$/, "")}.${lim}</small>`;
   // Aviso destacado de la fecha límite de continuidad
   if (cfg.cierreContinuidad && cfg.abierto) {
@@ -476,10 +477,10 @@
     const val = i.valorInscripcion || valorPara(i.tipoEstudiante, cfg);
     let msg = "";
     const adm = i.entrevista && i.entrevista.estado === "admitido";
-    if (est === "entrevista") msg = `<div class="aviso aviso-i" style="text-align:left">🧠 <b>Inscripción recibida. Siguiente paso: entrevista con psicología.</b> El colegio se comunicará con usted por WhatsApp para programarla${i.entrevista && i.entrevista.cita ? ` (cita: <b>${new Date(i.entrevista.cita).toLocaleString("es-CO", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" })}</b>)` : ""}. Después de la entrevista le informaremos si puede continuar con el pago de la inscripción.</div>`;
+    if (est === "entrevista") msg = `<div class="aviso aviso-i" style="text-align:left">🧠 <b>Pago recibido. Siguiente paso: entrevista con psicología.</b> El colegio se comunicará con usted por WhatsApp para programarla${i.entrevista && i.entrevista.cita ? ` (cita: <b>${new Date(i.entrevista.cita).toLocaleString("es-CO", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" })}</b>)` : ""}. Después de la entrevista le informaremos si el estudiante fue admitido y puede continuar con la matrícula.</div>`;
     else if (est === "noadmitido") msg = `<div class="aviso aviso-r" style="text-align:left">Agradecemos su interés en el Colegio Gimnasio Real de la Sabana. Después de la entrevista, en esta ocasión no es posible continuar con el proceso de inscripción. Para más información comuníquese con la rectoría.</div>`;
-    else if (est === "pendiente") msg = `<div class="aviso aviso-a" style="text-align:left">${adm ? "🎉 <b>¡El estudiante fue admitido!</b> " : ""}⏳ <b>Su cupo aún no está guardado.</b> Acérquese a ${esc(cfg.lugarPago)} con este código y cancele ${val ? `<b>${pesos(val)}</b>` : "el valor de la inscripción"} en efectivo <b>antes del ${fecha(i.venceEl)}</b>. ${esc(cfg.horario)}.</div>`;
-    else if (est === "guardado") msg = `<div class="aviso aviso-ok" style="text-align:left">✅ <b>¡Cupo guardado!</b> Recibimos su pago${i.pago ? ` (recibo No. ${esc(i.pago.recibo)}, ${fecha(i.pago.fecha)})` : ""}. Le informaremos las fechas de matrícula.</div>`;
+    else if (est === "pendiente") msg = `<div class="aviso aviso-a" style="text-align:left">${i.entrevista ? "🧠 Después del pago, el colegio le programará la <b>entrevista con psicología</b>. " : ""}⏳ <b>Su cupo aún no está guardado.</b> Acérquese a ${esc(cfg.lugarPago)} con este código y cancele ${val ? `<b>${pesos(val)}</b>` : "el valor de la inscripción"} en efectivo <b>antes del ${fecha(i.venceEl)}</b>. ${esc(cfg.horario)}.</div>`;
+    else if (est === "guardado") msg = `<div class="aviso aviso-ok" style="text-align:left">${adm ? "🎉 <b>¡El estudiante fue admitido!</b> " : ""}✅ <b>¡Cupo guardado!</b> Recibimos su pago${i.pago ? ` (recibo No. ${esc(i.pago.recibo)}, ${fecha(i.pago.fecha)})` : ""}. Le informaremos las fechas de matrícula.</div>`;
     else if (est === "vencido") msg = `<div class="aviso aviso-r" style="text-align:left">⚠️ <b>El plazo de pago venció el ${fecha(i.venceEl)}.</b> El cupo puede ser asignado a otro estudiante. Comuníquese de inmediato con la secretaría.</div>`;
     else msg = `<div class="aviso aviso-r" style="text-align:left">Esta inscripción figura como <b>${st.txt.toLowerCase()}</b>. Comuníquese con la secretaría del colegio.</div>`;
     const wa = cfg.whatsappSecretaria
