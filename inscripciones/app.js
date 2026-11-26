@@ -26,7 +26,7 @@
     diasPlazo: 8,
     fechaCierre: "",
     // Inscripción de estudiantes de continuidad: hasta esta fecha (luego se habilitan los cupos para nuevos)
-    cierreContinuidad: (C.anio - 1) + "-12-10",
+    cierreContinuidad: (C.anio - 1) + "-12-04",
     whatsappSecretaria: "",
     horario: "Lunes a viernes de 7:00 a.m. a 3:00 p.m.",
     lugarPago: "Secretaría del colegio",
@@ -144,6 +144,11 @@
       img.onerror = () => { URL.revokeObjectURL(url); fail(new Error("No se pudo leer la imagen")); };
       img.src = url;
     });
+  }
+  // "viernes 4 de diciembre de 2026"
+  function fechaLarga(iso) {
+    if (!iso) return "";
+    return new Date(iso + "T12:00:00").toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).replace(",", "");
   }
   // ¿Todavía se reciben inscripciones de continuidad?
   function continuidadAbierta(cfg) {
@@ -497,5 +502,5 @@
   }
 
   window.GRS = { C, GRADOS, ESTADOS, Store, esc, pesos, fecha, edad, nombreEst, estadoReal, telWa, hoja, imprimir, hoyISO, valorPara, TIPOS, fotoReducida, fotoSrc,
-    continuidadAbierta, MESES, PREESCOLAR, nivelDe, cobrosPara, calcFactura, estadoPagoMat, estadoFolio, enLetras, archivoReducido, verArchivo, hoyLargo, DEMO_Q };
+    continuidadAbierta, fechaLarga, MESES, PREESCOLAR, nivelDe, cobrosPara, calcFactura, estadoPagoMat, estadoFolio, enLetras, archivoReducido, verArchivo, hoyLargo, DEMO_Q };
 })();

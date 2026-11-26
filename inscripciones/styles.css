@@ -238,3 +238,7 @@ input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--azul
 .carne-qr img, .carne-qr canvas { width: 92px !important; height: 92px !important; }
 .carne-estado { text-align: center; font-weight: 800; font-size: 12.5px; padding: 7px; background: #eceef2; color: #555c6b; letter-spacing: .04em; }
 .carne-estado.ok { background: var(--azul); color: #fff; }
+
+/* ---------- aviso destacado (fecha límite) ---------- */
+.destacado { background: var(--rojo); color: #fff; border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; font-size: 15.5px; box-shadow: 0 6px 20px rgba(211, 24, 43, .28); text-align: center; line-height: 1.5; }
+.destacado .fecha { display: block; font-family: "Merriweather", Georgia, serif; font-size: 22px; font-weight: 700; margin: 6px 0; text-transform: uppercase; letter-spacing: .02em; }

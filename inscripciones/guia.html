@@ -50,7 +50,7 @@
   <div class="card">
     <h2>El recorrido completo</h2>
     <p class="ayuda">Son 4 etapas. Guarde bien el <b>código de inscripción</b> que recibe al inscribirse: con él y el documento del estudiante hace todo lo demás.</p>
-    <div class="aviso aviso-a" style="margin-bottom:12px">📅 <b>Estudiantes de continuidad:</b> inscríbanse a más tardar el <b id="g-cierre-cont">10 de diciembre</b>. Después de esa fecha esos cupos se habilitan para estudiantes nuevos.</div>
+    <div class="destacado" style="margin-bottom:12px">📅 <b>Estudiantes de continuidad:</b> inscríbanse a más tardar el <span class="fecha" id="g-cierre-cont">viernes 4 de diciembre de 2026</span>Después de esa fecha esos cupos se habilitan para estudiantes nuevos.</div>
     <div class="indice"><a href="#e1">1. Inscripción</a><a href="#e2">2. Cupo guardado</a><a href="#e3">3. Factura y pago</a><a href="#e4">4. Folio, firmas y carné</a><a href="#preguntas">Preguntas</a></div>
   </div>
 
@@ -140,7 +140,7 @@
   try { await Store.init(); cfg = await Store.getConfig(); } catch (e) { return; }
   $("#g-nuevo").textContent = pesos(cfg.valorNuevo); $("#g-cont").textContent = pesos(cfg.valorContinuidad);
   $("#g-dias").textContent = cfg.diasPlazo;
-  if (cfg.cierreContinuidad) $("#g-cierre-cont").textContent = GRS.fecha(cfg.cierreContinuidad); $("#g-horario").textContent = cfg.horario; $("#g-lugar").textContent = (cfg.lugarPago || "secretaría del colegio").toLowerCase();
+  if (cfg.cierreContinuidad) $("#g-cierre-cont").textContent = GRS.fechaLarga(cfg.cierreContinuidad); $("#g-horario").textContent = cfg.horario; $("#g-lugar").textContent = (cfg.lugarPago || "secretaría del colegio").toLowerCase();
   const mt = cfg.matricula;
   $("#g-medios").textContent = mt.mediosPago;
   $("#g-dia").textContent = mt.diaPension || 5;

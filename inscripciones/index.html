@@ -40,6 +40,7 @@
       <p class="ayuda">En este momento no estamos recibiendo inscripciones en línea. Comuníquese con la secretaría del colegio.</p>
     </div>
 
+    <div id="aviso-cont" class="destacado" hidden></div>
     <div id="info-pago" class="aviso aviso-i"></div>
 
     <form id="form" class="card" novalidate autocomplete="on">
@@ -269,14 +270,21 @@
   const contAbierta = GRS.continuidadAbierta(cfg);
   $("#info-pago").innerHTML = `💵 <b>¿Cómo se guarda el cupo?</b> Al terminar recibirá un <b>código</b>.
     <br>• <b>Estudiantes de continuidad</b>: preséntelo en ${esc(cfg.lugarPago)} y cancele la inscripción (${pesos(cfg.valorContinuidad)}) en efectivo dentro de los <b>${cfg.diasPlazo} días</b> siguientes.
-    ${cfg.cierreContinuidad ? (contAbierta ? `Plazo para inscribirse: <b>hasta el ${fecha(cfg.cierreContinuidad)}</b>; después esos cupos se habilitan para estudiantes nuevos.` : `<b>El plazo para continuidad terminó el ${fecha(cfg.cierreContinuidad)}</b>; comuníquese con la secretaría.`) : ""}
+    ${cfg.cierreContinuidad ? (contAbierta ? `Plazo para inscribirse: <b>hasta el ${GRS.fechaLarga(cfg.cierreContinuidad)}</b>; después esos cupos se habilitan para estudiantes nuevos.` : `<b>El plazo para continuidad terminó el ${GRS.fechaLarga(cfg.cierreContinuidad)}</b>; comuníquese con la secretaría.`) : ""}
     <br>• <b>Estudiantes nuevos</b>: el colegio los cita a una <b>entrevista con psicología</b>. Si el estudiante es admitido, se cancela la inscripción (${pesos(cfg.valorNuevo)}) en efectivo dentro de los ${cfg.diasPlazo} días siguientes a la admisión.
     <br><small>${esc(cfg.horario).replace(/\.$/, "")}.${lim}</small>`;
+  // Aviso destacado de la fecha límite de continuidad
+  if (cfg.cierreContinuidad && cfg.abierto) {
+    $("#aviso-cont").innerHTML = contAbierta
+      ? `📅 <b>Estudiantes de continuidad:</b> el plazo para inscribirse es hasta el <span class="fecha">${GRS.fechaLarga(cfg.cierreContinuidad)}</span>Después de esa fecha los cupos se habilitan para estudiantes nuevos.`
+      : `📅 <b>El plazo de inscripción para estudiantes de continuidad terminó</b> el <span class="fecha">${GRS.fechaLarga(cfg.cierreContinuidad)}</span>Comuníquese con la secretaría del colegio.`;
+    $("#aviso-cont").hidden = false;
+  }
   // Continuidad cerrada después de la fecha límite
   if (!contAbierta) {
     const r = document.querySelector('input[name="tipoEstudiante"][value="continuidad"]');
     r.disabled = true; r.checked = false;
-    r.closest("label").insertAdjacentHTML("beforeend", ` <small style="color:var(--rojo)">(plazo cerrado el ${fecha(cfg.cierreContinuidad)})</small>`);
+    r.closest("label").insertAdjacentHTML("beforeend", ` <small style="color:var(--rojo)">(plazo cerrado el ${GRS.fechaLarga(cfg.cierreContinuidad)})</small>`);
   }
   $$(".v-tipo").forEach(b => b.textContent = "· " + pesos(valorPara(b.dataset.tipo, cfg)));
 
